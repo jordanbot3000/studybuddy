@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Study Buddy</title>
+  <meta name="description" content="A guitar practice companion: key/fret/dice randomizers, a CAGED shape tracker, and a metronome.">
+  <meta name="theme-color" content="#EEEDFE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#201B4E" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Study Buddy">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <div class="phone">
+      <h1 class="sr-only">Study Buddy guitar practice app</h1>
+
+      <div class="hero">
+        <svg class="applogo" id="mascot" viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M50 6 C74 6 90 20 90 46 C90 76 62 102 50 106 C38 102 10 76 10 46 C10 20 26 6 50 6 Z" fill="#7F77DD" stroke="#534AB7" stroke-width="3"/>
+          <ellipse cx="38" cy="46" rx="9" ry="11" fill="#fff"/>
+          <ellipse cx="62" cy="46" rx="9" ry="11" fill="#fff"/>
+          <circle cx="39" cy="48" r="4.5" fill="#26215C"/>
+          <circle cx="63" cy="48" r="4.5" fill="#26215C"/>
+          <circle cx="40.5" cy="46" r="1.6" fill="#fff"/>
+          <circle cx="64.5" cy="46" r="1.6" fill="#fff"/>
+          <circle cx="28" cy="60" r="5" fill="#F0997B" opacity=".7"/>
+          <circle cx="72" cy="60" r="5" fill="#F0997B" opacity=".7"/>
+          <path d="M40 66 Q50 76 60 66" fill="none" stroke="#26215C" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <h1>Study Buddy</h1>
+          <p>your guitar practice pal</p>
+        </div>
+        <button class="settings-btn" id="settings-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+
+      <div class="peak">
+        <label class="ps-switch">
+          <span>Pedal Steel</span>
+          <input type="checkbox" id="ps-toggle">
+          <span class="track"><span class="knob"></span></span>
+        </label>
+      </div>
+
+      <div class="board">
+        <div class="grid">
+          <button class="tile t-blue" id="key-tile">
+            <span class="tile-label">Key</span>
+            <span class="win"><span class="tile-out" id="key-out">&ndash;</span></span>
+          </button>
+          <button class="tile t-green" id="fret-tile">
+            <span class="tile-label">Fret</span>
+            <span class="win"><span class="tile-out" id="fret-out">&ndash;</span></span>
+          </button>
+          <button class="tile t-amber" id="die-tile">
+            <span class="tile-label">Roll a die</span>
+            <span class="win"><span class="tile-out" id="die-out"></span></span>
+          </button>
+          <button class="tile t-purple" id="shape-tile">
+            <span class="tile-label">Shape</span>
+            <span class="win"><span class="tile-out" id="shape-out"></span></span>
+          </button>
+        </div>
+
+        <div class="drawer" id="drawer">
+          <div class="drawer-inner">
+            <button class="tile t-indigo" id="min-tile">
+              <span class="tile-label">Minors</span>
+              <span class="win"><span class="tile-out" id="min-out" style="font-size:18px;">&ndash;</span></span>
+            </button>
+            <button class="tile t-rose" id="perm-tile">
+              <span class="tile-label">Permutations</span>
+              <span class="win"><span class="tile-out" id="perm-out" style="font-size:26px;">&ndash;</span></span>
+            </button>
+          </div>
+        </div>
+
+        <button class="tile t-teal tile-wide dir" id="dir-tile">
+          <span class="tile-label">Direction</span>
+          <span class="win"><span class="tile-out" id="dir-out">&ndash;</span></span>
+        </button>
+      </div>
+
+      <div class="met" id="met">
+        <div class="met-head">
+          <div class="met-left">
+            <span class="met-title">Metronome</span>
+            <span class="subind" id="subind"><span class="dot" id="subdot"></span>SUBDIVIDE</span>
+          </div>
+          <div class="met-right">
+            <button class="ts-chip" id="tsig">4/4</button>
+            <button class="mult-toggle" id="mult" aria-pressed="false" aria-label="Subdivide into eighth notes">&#9835;</button>
+          </div>
+        </div>
+        <div class="beats" id="beats"></div>
+        <div class="bpm"><input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute"><small>BPM</small></div>
+        <div class="slider-row">
+          <input type="range" id="bpm" min="40" max="240" value="100" step="1" aria-label="Tempo slider">
+          <div class="stepper">
+            <button id="minus" aria-label="Decrease tempo">&minus;</button>
+            <button id="plus" aria-label="Increase tempo">+</button>
+          </div>
+        </div>
+        <div class="met-ctrl">
+          <button class="play" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
+          <button class="tap" id="tap-btn">Tap</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
