@@ -4,17 +4,18 @@
 
   const ICON_PLAY = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const ICON_STOP = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
-  const ICON_TP_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
-  const ICON_TP_PLAY  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  const CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const ICON_TP_PAUSE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  const ICON_TP_PLAY  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const CHECK  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const ICON_X_SM = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
   const notes  = ["C","C\u266F","D\u266D","D","D\u266F","E\u266D","E","F","F\u266F","G\u266D","G","G\u266F","A\u266D","A","A\u266F","B\u266D","B"];
   const dirs   = [{t:"Ascending",a:"\u2191"},{t:"Descending",a:"\u2193"}];
   const perms  = ["1-2-3","1-3-2","2-1-3","2-3-1","3-1-2","3-2-1"];
   const minors = ["PD 2m","PD 3m","PD 6m","Open 2m","Open 3m","Open 6m","B+C 2m","B+C 3m","B+C 6m"];
-  const NUMWORDS = ["zero","One","Two","Three","Four","Five","Six","Seven","Eight"];
   const SOUNDS = ["chime","beeps","bell","ping","marimba","arcade"];
-  const VOICES = [["classic","Classic"],["warm","Warm"],["sharp","Sharp"]];
+  const VOICES = [["classic","Classic"],["warm","Warm"],["sharp","Sharp"],["wood","Wood"],["click","Click"],["pulse","Pulse"]];
 
   const pick = a => a[Math.floor(Math.random()*a.length)];
   const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
@@ -43,11 +44,11 @@
     const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
-  function diceCaption(){
-    const same = dice.every(s=>s===dice[0]);
-    if(same){ const c = dice.length<=8?NUMWORDS[dice.length]:dice.length; return c+' '+dice[0]+'-sided '+(dice.length===1?'die':'dice'); }
-    return dice.map(s=>s+'-sided').join(' \u00B7 ');
+  function diceChipText(){
+    if(dice.length===1) return 'd'+dice[0];
+    return dice.every(s=>s===dice[0]) ? (dice.length+'d'+dice[0]) : (dice.length+' dice');
   }
+  function updateDiceChip(){ const c=$("die-cfg"); if(c) c.textContent=diceChipText(); }
   function showTotal(sum){ const t=$("die-total"); t.textContent=sum; t.classList.add("show"); }
   function diceDefault(){ $("die-out").innerHTML = renderDiceRow(dice.map(s=>({v:1,s}))); showTotal(dice.length); }
   diceDefault();
@@ -80,7 +81,7 @@
   $("die-tile").onclick  = () => rollDice();
   $("perm-tile").onclick = () => reel("perm-out", ()=>pick(perms));
   $("min-tile").onclick  = () => reel("min-out", ()=>pick(minors));
-  $("dir-tile").onclick  = () => { const d=pick(dirs); $("dir-out").textContent = d.a+" "+d.t; };
+  $("dir-tile").onclick  = () => reel("dir-out", ()=>{ const d=pick(dirs); return d.a+" "+d.t; });
 
   /* ---------- Shape (SVG) ---------- */
   const shapes = ["C","A","G","E","D"];
@@ -108,12 +109,19 @@
 
   $("ps-toggle").addEventListener("change", e => $("drawer").classList.toggle("open", e.target.checked));
 
-  /* ---------- Sheet ---------- */
+  /* ---------- Sheet (with cancel/X) ---------- */
   const overlay=$("overlay"), sheet=$("sheet");
-  function openSheet(html){ sheet.innerHTML=html; overlay.classList.add("open"); }
-  function closeSheet(){ overlay.classList.remove("open"); }
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) closeSheet(); });
+  let sheetCancel=null;
+  function openSheet(title, body, onCancel){
+    sheetCancel = onCancel || null;
+    sheet.innerHTML = '<div class="sheet-head"><h3>'+title+'</h3><button class="sheet-x" id="__sx" aria-label="Cancel">'+ICON_X+'</button></div>'+body;
+    $("__sx").onclick = ()=>{ const c=sheetCancel; sheetCancel=null; if(c)c(); closeSheet(); };
+    overlay.classList.add("open");
+  }
+  function closeSheet(){ sheetCancel=null; overlay.classList.remove("open"); }
+  overlay.addEventListener("click", e=>{ if(e.target===overlay){ const c=sheetCancel; sheetCancel=null; if(c)c(); closeSheet(); } });
 
+  /* Horizontal wheel (time signature) */
   function makeWheel(el, values, current, onChange){
     const CELL=52;
     el.innerHTML = values.map(v=>'<div class="wcell">'+v+'</div>').join('');
@@ -123,46 +131,98 @@
     el.addEventListener('scroll', ()=>{ mark(); clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(values.length-1,Math.round(el.scrollLeft/CELL))); onChange(values[i]); }, 110); });
     setTimeout(()=>{ el.scrollLeft = idx*CELL; mark(); }, 60);
   }
-  function makeVWheel(el, values, current, onChange){
-    const CELL=44;
-    el.innerHTML = values.map(v=>'<div class="vcell">'+v+'</div>').join('');
-    function mark(){ const i=Math.round(el.scrollTop/CELL); for(let j=0;j<el.children.length;j++) el.children[j].classList.toggle('mid', j===i); }
-    let t;
-    el.addEventListener('scroll', ()=>{ mark(); clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(values.length-1,Math.round(el.scrollTop/CELL))); onChange(values[i]); }, 110); });
-    el._scrollTo = (v)=>{ const i=values.indexOf(v); if(i>=0){ el.scrollTop=i*CELL; mark(); } };
-    setTimeout(()=>{ el.scrollTop = Math.max(0,values.indexOf(current))*CELL; mark(); }, 50);
+
+  /* Vertical wheel: pointer-drag (captures gesture, no page pull) + tap-to-type. Values must be contiguous ints. */
+  function makeVWheel(el, values, current, onChange, opts){
+    opts=opts||{};
+    const CELL=44, H=176, baseline=H/2-CELL/2, n=values.length, speed=opts.speed||1;
+    const list=document.createElement('div'); list.className='vlist';
+    list.innerHTML = values.map(v=>'<div class="vcell">'+v+'</div>').join('');
+    const input=document.createElement('input'); input.type='text'; input.inputMode='numeric'; input.className='vtype';
+    el.innerHTML=''; el.appendChild(list); el.appendChild(input);
+    const maxPos=(n-1)*CELL;
+    let pos=Math.max(0,values.indexOf(current))*CELL;
+    const clampPos=p=>Math.max(0,Math.min(maxPos,p));
+    const curIdx=()=>Math.max(0,Math.min(n-1,Math.round(pos/CELL)));
+    function paint(anim){
+      list.style.transition = anim?'transform .24s cubic-bezier(.2,.85,.3,1)':'none';
+      list.style.transform='translateY('+(baseline-pos)+'px)';
+      const ci=curIdx();
+      for(let j=0;j<n;j++) list.children[j].classList.toggle('mid', j===ci);
+    }
+    function commit(){ onChange(values[curIdx()]); }
+    paint(false);
+    let dragging=false, moved=false, startY=0, startPos=0, lastY=0, lastT=0, vel=0;
+    el.addEventListener('pointerdown', e=>{
+      if(e.target===input) return;
+      dragging=true; moved=false; startY=e.clientY; startPos=pos; lastY=e.clientY; lastT=e.timeStamp; vel=0;
+      try{el.setPointerCapture(e.pointerId);}catch(_){}
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      const dy=e.clientY-startY; if(Math.abs(dy)>4) moved=true;
+      pos=clampPos(startPos - dy*speed);
+      const dt=e.timeStamp-lastT; if(dt>0){ vel=(e.clientY-lastY)/dt; } lastY=e.clientY; lastT=e.timeStamp;
+      paint(false);
+    });
+    function end(){
+      if(!dragging) return; dragging=false;
+      if(!moved){ openType(); return; }
+      let proj = clampPos(pos - vel*speed*90);
+      pos = clampPos(Math.round(proj/CELL)*CELL);
+      paint(true); commit();
+    }
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', ()=>{ dragging=false; });
+    function openType(){ input.value=values[curIdx()]; input.style.display='block'; setTimeout(()=>{ input.focus(); try{input.select();}catch(_){} },0); }
+    input.addEventListener('input', ()=>{ let v=parseInt(input.value.replace(/\D/g,''),10); if(isNaN(v)) return; v=Math.max(values[0],Math.min(values[n-1],v)); pos=clampPos((v-values[0])*CELL); paint(false); commit(); });
+    input.addEventListener('blur', ()=>{ input.style.display='none'; pos=clampPos(Math.round(pos/CELL)*CELL); paint(true); commit(); });
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') input.blur(); });
+    el._scrollTo=(v)=>{ const i=values.indexOf(v); if(i>=0){ pos=i*CELL; paint(true); } };
     return el;
   }
 
-  /* ---------- Dice config (module chip) ---------- */
+  /* ---------- Dice config ---------- */
   function openDiceCfg(){
-    openSheet('<h3>Dice</h3><div class="dicePrev t-amber" id="dicePrev"></div><div class="diceCap" id="diceCap"></div><div id="diceList"></div><button class="addDie" id="addDie">+ Add die</button><button class="done" id="setDone">Done</button>');
+    const snap=dice.slice();
+    openSheet('Dice',
+      '<div class="dicePrev t-amber" id="dicePrev"></div><div class="diceCap" id="diceCap"></div><div id="diceList"></div><button class="addDie" id="addDie">+ Add die</button><button class="done" id="setDone">Done</button>',
+      ()=>{ dice=snap.slice(); diceDefault(); updateDiceChip(); });
     function renderDiceList(){ $("diceList").innerHTML = dice.map((s,i)=>'<div class="dieRow"><span class="dieRowLabel">Die '+(i+1)+'</span><div class="stp"><button data-act="m" data-i="'+i+'">&minus;</button><span class="v">'+s+'</span><button data-act="p" data-i="'+i+'">+</button></div>'+(dice.length>1?'<button class="rm" data-act="rm" data-i="'+i+'">\u00D7</button>':'<span style="width:30px;flex:0 0 30px"></span>')+'</div>').join(''); }
-    function refreshDice(){ renderDiceList(); $("dicePrev").innerHTML = renderDiceRow(dice.map(s=>({v:s,s}))); $("diceCap").textContent = diceCaption(); }
-    $("diceList").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; const i=+b.dataset.i,act=b.dataset.act; if(act==="m")dice[i]=Math.max(2,dice[i]-1); else if(act==="p")dice[i]=Math.min(100,dice[i]+1); else if(act==="rm"&&dice.length>1)dice.splice(i,1); refreshDice(); };
-    $("addDie").onclick=()=>{ if(dice.length<8){ dice.push(6); refreshDice(); } };
-    refreshDice();
-    $("setDone").onclick=()=>{ diceDefault(); closeSheet(); };
+    function refresh(){ renderDiceList(); $("dicePrev").innerHTML = renderDiceRow(dice.map(s=>({v:s,s}))); $("diceCap").textContent = (function(){const same=dice.every(s=>s===dice[0]); return same?(dice.length+' \u00D7 '+dice[0]+'-sided'):dice.map(s=>s+'-sided').join(' \u00B7 ');})(); updateDiceChip(); }
+    $("diceList").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; const i=+b.dataset.i,act=b.dataset.act; if(act==="m")dice[i]=Math.max(2,dice[i]-1); else if(act==="p")dice[i]=Math.min(100,dice[i]+1); else if(act==="rm"&&dice.length>1)dice.splice(i,1); refresh(); };
+    $("addDie").onclick=()=>{ if(dice.length<8){ dice.push(6); refresh(); } };
+    refresh();
+    $("setDone").onclick=()=>{ diceDefault(); updateDiceChip(); closeSheet(); };
   }
   $("die-cfg").onclick = e => { e.stopPropagation(); openDiceCfg(); };
 
-  /* ---------- Fret config (module chip) ---------- */
+  /* ---------- Fret config ---------- */
   let fmin=1, fmax=12;
+  function updateFretChip(){ const c=$("fret-cfg"); if(c) c.textContent=fmin+'\u2013'+fmax; }
   function openFretCfg(){
-    openSheet('<h3>Fret range</h3><div class="vwheels"><div class="vwheel-wrap"><span class="vwlabel">Low</span><div class="vwheel" id="frLoW"></div></div><div class="vwheel-wrap"><span class="vwlabel">High</span><div class="vwheel" id="frHiW"></div></div><div class="vwband"></div></div><button class="done" id="frDone">Done</button>');
+    const snap={a:fmin,b:fmax};
+    openSheet('Fret range',
+      '<div class="vwheels"><div class="vwheel-wrap"><span class="vwlabel">Low</span><div class="vwheel" id="frLoW"></div></div><div class="vwheel-wrap"><span class="vwlabel">High</span><div class="vwheel" id="frHiW"></div></div></div><button class="done" id="frDone">Done</button>',
+      ()=>{ fmin=snap.a; fmax=snap.b; updateFretChip(); });
     const fr=[]; for(let i=0;i<=24;i++) fr.push(i);
     let loW, hiW;
-    loW=makeVWheel($("frLoW"), fr, fmin, v=>{ fmin=v; if(fmin>fmax){ fmax=fmin; hiW&&hiW._scrollTo(fmax); } });
-    hiW=makeVWheel($("frHiW"), fr, fmax, v=>{ fmax=v; if(fmax<fmin){ fmin=fmax; loW&&loW._scrollTo(fmin); } });
+    loW=makeVWheel($("frLoW"), fr, fmin, v=>{ fmin=v; if(fmin>fmax){ fmax=fmin; hiW&&hiW._scrollTo(fmax); } updateFretChip(); }, {speed:1});
+    hiW=makeVWheel($("frHiW"), fr, fmax, v=>{ fmax=v; if(fmax<fmin){ fmin=fmax; loW&&loW._scrollTo(fmin); } updateFretChip(); }, {speed:1});
     $("frDone").onclick=closeSheet;
   }
   $("fret-cfg").onclick = e => { e.stopPropagation(); openFretCfg(); };
+  updateFretChip(); updateDiceChip();
 
   /* ---------- Time signature ---------- */
   let tsNum=4, tsDen=4;
   function applyTS(){ beatsPerBar=tsNum; $("tsig").textContent=tsNum+"/"+tsDen; buildBeats(); }
   function openTimeSig(){
-    openSheet('<h3>Time signature</h3><div class="tsface"><div class="wheel-wrap"><div class="wheel" id="wheelNum"></div></div><div class="tsline"></div><div class="wheel-wrap"><div class="wheel" id="wheelDen"></div></div></div><button class="done" id="tsDone">Done</button>');
+    const snap={n:tsNum,d:tsDen};
+    openSheet('Time signature',
+      '<div class="tsface"><div class="wheel-wrap"><div class="wheel" id="wheelNum"></div></div><div class="tsline"></div><div class="wheel-wrap"><div class="wheel" id="wheelDen"></div></div></div><button class="done" id="tsDone">Done</button>',
+      ()=>{ tsNum=snap.n; tsDen=snap.d; applyTS(); });
     const nums=[]; for(let i=1;i<=51;i++) nums.push(i);
     makeWheel($("wheelNum"), nums, tsNum, v=>{ tsNum=v; applyTS(); });
     makeWheel($("wheelDen"), [1,2,4,8,16,32,64], tsDen, v=>{ tsDen=v; applyTS(); });
@@ -170,81 +230,100 @@
   }
   $("tsig").onclick = openTimeSig;
 
-  /* ---------- Timers (permanent module + strip) ---------- */
+  /* ---------- Timers (permanent module, swipe carousel) ---------- */
   let timers=[], timerTick=null, tMin=5, tSec=0;
   function fmtTime(sec){ sec=Math.max(0,Math.ceil(sec)); const m=Math.floor(sec/60), s=sec%60; return m+':'+pad2(s); }
   const remOf = t => t.running ? (t.endTime-Date.now())/1000 : t.remaining;
-  function updateTimerTile(){
-    const el=$("timer-out"); if(!el) return;
-    if(timers.length===0){ el.innerHTML='<span class="timer-add">+</span>'; return; }
-    const nearest = timers.slice().sort((a,b)=>remOf(a)-remOf(b))[0];
-    const more = timers.length>1 ? '<span class="timer-more">+'+(timers.length-1)+'</span>' : '';
-    el.innerHTML = '<span class="timer-live'+(nearest.running?'':' paused')+'">'+fmtTime(remOf(nearest))+'</span>'+more;
+  function renderDots(nn, active){
+    const el=$("timer-dots"); if(!el) return;
+    if(nn<=1){ el.innerHTML=''; return; }
+    active=Math.max(0,Math.min(nn-1,active));
+    const MAX=7; let html='';
+    if(nn<=MAX){ for(let i=0;i<nn;i++) html+='<span class="tdot'+(i===active?' on':'')+'"></span>'; }
+    else{
+      let start=Math.max(0,Math.min(active-3,nn-MAX));
+      for(let s=0;s<MAX;s++){ const i=start+s; let cls='tdot'; if(i===active)cls+=' on';
+        if((s===0&&start>0)||(s===MAX-1&&start+MAX<nn)) cls+=' xs';
+        else if((s===1&&start>0)||(s===MAX-2&&start+MAX<nn)) cls+=' sm';
+        html+='<span class="'+cls+'"></span>'; }
+    }
+    el.innerHTML=html;
   }
-  function renderTimers(){
-    const strip=$("timers-strip");
-    if(timers.length===0){ strip.innerHTML=""; strip.classList.remove("show"); updateTimerTile(); return; }
-    strip.classList.add("show");
-    strip.innerHTML = timers.map(t=>{
-      const rem = remOf(t), frac = Math.max(0,Math.min(1,rem/t.total));
-      return '<div class="tchip'+(t.running?'':' paused')+'" data-id="'+t.id+'">'
-        +'<span class="tstate">'+(t.running?ICON_TP_PAUSE:ICON_TP_PLAY)+'</span>'
-        +'<span class="ttime">'+fmtTime(rem)+'</span>'
-        +'<button class="tx" data-id="'+t.id+'" aria-label="Cancel">\u00D7</button>'
-        +'<div class="tbar"><div class="tbar-fill" style="width:'+(frac*100)+'%"></div></div>'
+  function renderTimerModule(){
+    const host=$("timer-tile"); if(!host) return;
+    if(timers.length===0){
+      host.classList.add('empty');
+      host.innerHTML='<span class="tile-label">Timer</span><div class="timer-empty">00:00</div>';
+      return;
+    }
+    host.classList.remove('empty');
+    const slides=timers.map(t=>{
+      const rem=remOf(t), frac=Math.max(0,Math.min(1,rem/t.total));
+      return '<div class="timer-slide'+(t.running?'':' paused')+'" data-id="'+t.id+'">'
+        +'<button class="timer-x" data-id="'+t.id+'" aria-label="Cancel">'+ICON_X_SM+'</button>'
+        +'<div class="timer-face" data-id="'+t.id+'"><span class="tstate">'+(t.running?ICON_TP_PAUSE:ICON_TP_PLAY)+'</span><span class="timer-count">'+fmtTime(rem)+'</span></div>'
+        +'<div class="timer-prog"><div class="timer-prog-fill" style="width:'+(frac*100)+'%"></div></div>'
         +'</div>';
     }).join('');
-    updateTimerTile();
+    host.innerHTML='<span class="tile-label">Timer</span>'
+      +'<button class="timer-plus" id="timer-plus" aria-label="Add timer">+</button>'
+      +'<div class="timer-track" id="timer-track">'+slides+'</div>'
+      +'<div class="timer-dots" id="timer-dots"></div>';
+    const track=$("timer-track");
+    track.addEventListener('scroll', ()=>{ const w=track.clientWidth||1; renderDots(timers.length, Math.round(track.scrollLeft/w)); });
+    renderDots(timers.length, 0);
   }
-  function ensureTimerTick(){
-    if(timerTick) return;
-    timerTick=setInterval(()=>{
-      const now=Date.now();
-      timers.forEach(t=>{ if(t.running){ t.remaining=(t.endTime-now)/1000; if(t.remaining<=0){ t.done=true; playAlarm(alarmKind); if(navigator.vibrate) try{navigator.vibrate([200,120,200]);}catch(e){} } } });
-      timers = timers.filter(t=>!t.done);
-      renderTimers();
-      if(timers.length===0){ clearInterval(timerTick); timerTick=null; }
-    }, 250);
+  function updateTimerCounts(){
+    timers.forEach(t=>{
+      const sl=document.querySelector('.timer-slide[data-id="'+t.id+'"]'); if(!sl) return;
+      const rem=remOf(t);
+      const c=sl.querySelector('.timer-count'); if(c) c.textContent=fmtTime(rem);
+      const f=sl.querySelector('.timer-prog-fill'); if(f) f.style.width=(Math.max(0,Math.min(1,rem/t.total))*100)+'%';
+    });
   }
-  function addTimer(total){ if(total<=0) return; timers.push({id:'t'+Date.now()+Math.floor(Math.random()*999), total:total, remaining:total, endTime:Date.now()+total*1000, running:true}); renderTimers(); ensureTimerTick(); }
-  $("timers-strip").addEventListener("click", e=>{
-    const chip=e.target.closest(".tchip"); if(!chip) return;
-    const t=timers.filter(x=>x.id===chip.dataset.id)[0]; if(!t) return;
-    if(e.target.closest(".tx")){ timers=timers.filter(x=>x.id!==t.id); }
-    else { if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; } else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); } }
-    renderTimers();
+  function tickTimers(){
+    const now=Date.now(); let finished=false;
+    timers.forEach(t=>{ if(t.running){ t.remaining=(t.endTime-now)/1000; if(t.remaining<=0 && !t.done){ t.done=true; finished=true; playAlarm(alarmKind); if(navigator.vibrate) try{navigator.vibrate([200,120,200]);}catch(e){} } } });
+    if(finished){ timers=timers.filter(t=>!t.done); renderTimerModule(); }
+    else updateTimerCounts();
+    if(timers.length===0){ clearInterval(timerTick); timerTick=null; renderTimerModule(); }
+  }
+  function ensureTimerTick(){ if(!timerTick) timerTick=setInterval(tickTimers,250); }
+  function addTimer(total){ if(total<=0) return; timers.push({id:'t'+Date.now()+Math.floor(Math.random()*999), total:total, remaining:total, endTime:Date.now()+total*1000, running:true}); renderTimerModule(); ensureTimerTick(); }
+  function removeTimer(id){ timers=timers.filter(x=>x.id!==id); if(timers.length===0 && timerTick){ clearInterval(timerTick); timerTick=null; } renderTimerModule(); }
+  function togglePause(id){
+    const t=timers.filter(x=>x.id===id)[0]; if(!t) return;
+    if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; }
+    else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); }
+    const sl=document.querySelector('.timer-slide[data-id="'+id+'"]');
+    if(sl){ sl.classList.toggle('paused',!t.running); const st=sl.querySelector('.tstate'); if(st) st.innerHTML=t.running?ICON_TP_PAUSE:ICON_TP_PLAY; }
+  }
+  $("timer-tile").addEventListener('click', e=>{
+    const x=e.target.closest('.timer-x'); if(x){ removeTimer(x.dataset.id); return; }
+    if(e.target.closest('#timer-plus')){ openTimer(); return; }
+    const face=e.target.closest('.timer-face'); if(face){ togglePause(face.dataset.id); return; }
+    if(timers.length===0){ openTimer(); }
   });
   let alarmKind="chime";
   function openTimer(){
     const soundList = SOUNDS.map(k=>'<button class="sound-opt'+(k===alarmKind?' sel':'')+'" data-k="'+k+'"><span>'+cap(k)+'</span><span class="chk">'+CHECK+'</span></button>').join('');
-    openSheet('<h3>New timer</h3>'
-      +'<div class="vwheels tw"><div class="vwheel-wrap"><span class="vwlabel">min</span><div class="vwheel" id="wMin"></div></div>'
+    openSheet('New timer',
+      '<div class="vwheels tw"><div class="vwheel-wrap"><span class="vwlabel">min</span><div class="vwheel" id="wMin"></div></div>'
       +'<div class="vwsep">:</div>'
-      +'<div class="vwheel-wrap"><span class="vwlabel">sec</span><div class="vwheel" id="wSec"></div></div><div class="vwband"></div></div>'
-      +'<div class="typerow">or type <input type="text" id="tmType" inputmode="numeric" maxlength="3">:<input type="text" id="tsType" inputmode="numeric" maxlength="2"></div>'
+      +'<div class="vwheel-wrap"><span class="vwlabel">sec</span><div class="vwheel" id="wSec"></div></div></div>'
       +'<div class="sect-h">Sound</div><div class="sound-list" id="almList">'+soundList+'</div>'
-      +'<button class="done" id="tAdd">Add timer</button>');
+      +'<button class="done" id="tAdd">Add timer</button>', null);
     const mins=[]; for(let i=0;i<=99;i++) mins.push(i);
     const secs=[]; for(let i=0;i<=59;i++) secs.push(i);
-    const tmType=$("tmType"), tsType=$("tsType");
-    let wMin, wSec;
-    function syncType(){ if(document.activeElement!==tmType) tmType.value=tMin; if(document.activeElement!==tsType) tsType.value=pad2(tSec); }
-    wMin=makeVWheel($("wMin"), mins, tMin, v=>{ tMin=v; syncType(); });
-    wSec=makeVWheel($("wSec"), secs, tSec, v=>{ tSec=v; syncType(); });
-    syncType();
-    tmType.addEventListener("input", ()=>{ let v=parseInt(tmType.value.replace(/\D/g,''),10); if(isNaN(v))v=0; v=Math.max(0,Math.min(99,v)); tMin=v; wMin._scrollTo(v); });
-    tsType.addEventListener("input", ()=>{ let v=parseInt(tsType.value.replace(/\D/g,''),10); if(isNaN(v))v=0; v=Math.max(0,Math.min(59,v)); tSec=v; wSec._scrollTo(v); });
-    tmType.addEventListener("blur", ()=>{ tmType.value=tMin; });
-    tsType.addEventListener("blur", ()=>{ tsType.value=pad2(tSec); });
+    makeVWheel($("wMin"), mins, tMin, v=>{ tMin=v; }, {speed:1});
+    makeVWheel($("wSec"), secs, tSec, v=>{ tSec=v; }, {speed:1.45});
     $("almList").onclick=e=>{ const b=e.target.closest(".sound-opt"); if(!b)return; alarmKind=b.dataset.k; [].forEach.call(e.currentTarget.children,c=>c.classList.toggle("sel",c===b)); playAlarm(alarmKind); };
     $("tAdd").onclick=()=>{ if(tMin*60+tSec>0){ addTimer(tMin*60+tSec); closeSheet(); } };
   }
-  $("timer-tile").onclick = () => openTimer();
-  updateTimerTile();
+  renderTimerModule();
 
   /* ---------- Audio ---------- */
-  let ctx=null, master=null, playing=false, bpm=100, mult=1, beatsPerBar=4, nextTime=0, tick=0, timer=null;
-  let clickVoice="sharp", clickVol=1;
+  let ctx=null, master=null, playing=false, bpm=100, mult=1, beatsPerBar=4, nextTime=0, tick=0, timer=null, clickVoice="sharp";
   const queue=[]; let beatEls=[];
   const metEl=$("met");
   const playIcon=$("play-icon"), playText=$("play-text");
@@ -260,13 +339,8 @@
     return ctx;
   }
   function unlockAudio(){ try{ ensureCtx(); const b=ctx.createBuffer(1,1,22050); const s=ctx.createBufferSource(); s.buffer=b; s.connect(master); s.start(0); }catch(e){} }
-  document.addEventListener("pointerdown", unlockAudio, {once:true});
   function recover(){ if(ctx){ if(ctx.state!=="running") ctx.resume(); if(playing){ nextTime = ctx.currentTime + 0.06; queue.length=0; } } }
-  // Suspend audio the moment we go to background so no stray click leaks out on sleep.
-  document.addEventListener("visibilitychange", ()=>{
-    if(document.hidden){ if(ctx && ctx.state==="running"){ try{ ctx.suspend(); }catch(e){} } }
-    else { recover(); }
-  });
+  document.addEventListener("visibilitychange", ()=>{ if(document.hidden){ if(ctx && ctx.state==="running"){ try{ctx.suspend();}catch(e){} } } else recover(); });
   window.addEventListener("focus", recover);
   window.addEventListener("pageshow", recover);
 
@@ -307,40 +381,52 @@
   }
   buildBeats();
 
-  /* Three click voices: classic (sine) / warm (triangle+body) / sharp (square) */
+  /* Click voices */
   function clickSound(time, kind){
-    const V=clickVol;
     if(clickVoice==="classic"){
-      const cfg = kind==="accent"?{f:1600,v:0.9}:kind==="med"?{f:1300,v:0.7}:kind==="main"?{f:1050,v:0.6}:{f:900,v:0.28};
-      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
-      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.05);
+      const cfg=kind==="accent"?{f:1600,v:0.9}:kind==="med"?{f:1300,v:0.7}:kind==="main"?{f:1050,v:0.6}:{f:900,v:0.28};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.05);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.06);
     } else if(clickVoice==="warm"){
-      const cfg = kind==="accent"?{f:1150,v:1.0}:kind==="med"?{f:980,v:0.78}:kind==="main"?{f:820,v:0.7}:{f:640,v:0.34};
-      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="triangle"; o.frequency.value=cfg.f;
-      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.07);
+      const cfg=kind==="accent"?{f:1150,v:1.0}:kind==="med"?{f:980,v:0.78}:kind==="main"?{f:820,v:0.7}:{f:640,v:0.34};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="triangle"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.07);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.08);
-      const o2=ctx.createOscillator(), g2=ctx.createGain(); o2.type="sine"; o2.frequency.value=cfg.f*0.5;
-      g2.gain.setValueAtTime(0.0001,time); g2.gain.exponentialRampToValueAtTime(cfg.v*0.6*V,time+0.002); g2.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
+      const o2=ctx.createOscillator(),g2=ctx.createGain(); o2.type="sine"; o2.frequency.value=cfg.f*0.5;
+      g2.gain.setValueAtTime(0.0001,time); g2.gain.exponentialRampToValueAtTime(cfg.v*0.6,time+0.002); g2.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
       o2.connect(g2); g2.connect(master); o2.start(time); o2.stop(time+0.11);
-    } else {
-      const cfg = kind==="accent"?{f:2200,v:1.0}:kind==="med"?{f:1800,v:0.82}:kind==="main"?{f:1660,v:0.78}:{f:1245,v:0.42};
-      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="square"; o.frequency.value=cfg.f;
-      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.0006); g.gain.exponentialRampToValueAtTime(0.0001,time+0.032);
+    } else if(clickVoice==="wood"){
+      const cfg=kind==="accent"?{f:1000,v:1.0}:kind==="med"?{f:820,v:0.8}:kind==="main"?{f:720,v:0.72}:{f:560,v:0.36};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="triangle"; o.frequency.setValueAtTime(cfg.f*1.5,time); o.frequency.exponentialRampToValueAtTime(cfg.f,time+0.02);
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.028);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.04);
+    } else if(clickVoice==="click"){
+      const cfg=kind==="accent"?{f:2700,v:0.95}:kind==="med"?{f:2300,v:0.8}:kind==="main"?{f:2100,v:0.72}:{f:1600,v:0.4};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.0004); g.gain.exponentialRampToValueAtTime(0.0001,time+0.014);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.02);
+    } else if(clickVoice==="pulse"){
+      const cfg=kind==="accent"?{f:1200,v:0.85}:kind==="med"?{f:1000,v:0.68}:kind==="main"?{f:880,v:0.6}:{f:680,v:0.3};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.linearRampToValueAtTime(cfg.v,time+0.007); g.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.12);
+    } else { /* sharp */
+      const cfg=kind==="accent"?{f:2200,v:1.0}:kind==="med"?{f:1800,v:0.82}:kind==="main"?{f:1660,v:0.78}:{f:1245,v:0.42};
+      const o=ctx.createOscillator(),g=ctx.createGain(); o.type="square"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.0006); g.gain.exponentialRampToValueAtTime(0.0001,time+0.032);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.04);
     }
   }
   function previewClick(){ ensureCtx(); const t=ctx.currentTime+0.04; ["accent","main","main","main"].forEach((k,i)=>clickSound(t+i*0.25,k)); }
 
   function openMetSound(){
+    const snap=clickVoice;
     const list = VOICES.map(([k,label])=>'<button class="sound-opt'+(k===clickVoice?' sel':'')+'" data-k="'+k+'"><span>'+label+'</span><span class="chk">'+CHECK+'</span></button>').join('');
-    openSheet('<h3>Metronome sound</h3><div class="sound-list" id="voiceList">'+list+'</div>'
-      +'<div class="sect-h" style="margin-top:16px">Volume</div><div class="volrow"><input type="range" id="volRange" min="20" max="100" value="'+Math.round(clickVol*100)+'"></div>'
-      +'<button class="done" id="msDone">Done</button>');
+    openSheet('Metronome sound',
+      '<div class="sound-list" id="voiceList">'+list+'</div><button class="done" id="msDone">Done</button>',
+      ()=>{ clickVoice=snap; });
     $("voiceList").onclick=e=>{ const b=e.target.closest(".sound-opt"); if(!b)return; clickVoice=b.dataset.k; [].forEach.call(e.currentTarget.children,c=>c.classList.toggle("sel",c===b)); previewClick(); };
-    const vr=$("volRange");
-    vr.oninput=()=>{ clickVol=vr.value/100; };
-    vr.onchange=()=>{ clickVol=vr.value/100; previewClick(); };
     $("msDone").onclick=closeSheet;
   }
   $("met-sound-btn").onclick = openMetSound;
@@ -373,12 +459,19 @@
   const multBtn=$("mult");
   multBtn.addEventListener("click", () => { const on = multBtn.classList.toggle("active"); multBtn.setAttribute("aria-pressed", on); $("subind").classList.toggle("on", on); mult = on ? 2 : 1; });
 
-  /* ---------- Circular tempo dial (spin, transport in center) ---------- */
+  /* ---------- Circular dial (spin) ---------- */
   const dial=$("dial"), num=$("bpm-num");
-  const clamp = v => Math.max(40,Math.min(240,v));
+  (function(){
+    let s=''; const N=30;
+    for(let i=0;i<N;i++){ const ang=i*(360/N), rad=(ang-90)*Math.PI/180, r1=79, r2=85;
+      s+='<line class="dtick" x1="'+(100+r1*Math.cos(rad)).toFixed(1)+'" y1="'+(100+r1*Math.sin(rad)).toFixed(1)+'" x2="'+(100+r2*Math.cos(rad)).toFixed(1)+'" y2="'+(100+r2*Math.sin(rad)).toFixed(1)+'"/>'; }
+    s+='<line class="dnotch" x1="100" y1="68" x2="100" y2="85"/>';
+    $("dialTicks").innerHTML=s;
+  })();
+  const clamp = v => Math.max(10,Math.min(500,v));
   function setBpm(v){ bpm=clamp(Math.round(v)); num.value=bpm; updateTempo(); }
   let wheelRot=0, dragging=false, lastAng=0;
-  const GAIN = 20;
+  const GAIN = 22;
   function angOf(e){ const r=dial.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); }
   dial.addEventListener("pointerdown", e=>{ if(e.target.closest("#play-btn")) return; dragging=true; lastAng=angOf(e); try{dial.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
   dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); setBpm(bpm + d*GAIN); lastAng=a; });
@@ -396,6 +489,30 @@
   $("tap-btn").onclick = () => { const t=performance.now(); taps.push(t); taps=taps.filter(x=>t-x<3000); if(taps.length>=2){ let sum=0; for(let i=1;i<taps.length;i++) sum+=taps[i]-taps[i-1]; setBpm(60000/(sum/(taps.length-1))); } };
 
   updateTempo();
+
+  /* ---------- 180° flip (iPhone won't do upside-down portrait natively) ---------- */
+  let flipReady=false, baseSign=null, pendSign=null, pendCount=0;
+  function onMotion(e){
+    const g=e.accelerationIncludingGravity; if(!g || g.y==null) return;
+    const mag=Math.hypot(g.x||0,g.y||0,g.z||0)||1;   // works whether iOS reports g-units or m/s^2
+    if(Math.abs(g.y)/mag < 0.6) return;               // only when phone is roughly upright
+    const sign = g.y>0 ? 1 : -1;
+    if(baseSign===null){ baseSign=sign; return; } // first upright reading = "normal"
+    const want = (sign!==baseSign);
+    if(want !== document.body.classList.contains('flipped')){
+      if(pendSign===want) pendCount++; else { pendSign=want; pendCount=1; }
+      if(pendCount>=4){ document.body.classList.toggle('flipped', want); pendCount=0; }
+    } else pendCount=0;
+  }
+  function enableFlip(){
+    if(flipReady) return;
+    const DM=window.DeviceMotionEvent;
+    if(!DM) return;
+    if(typeof DM.requestPermission==='function'){
+      DM.requestPermission().then(s=>{ if(s==='granted'){ window.addEventListener('devicemotion', onMotion); flipReady=true; } }).catch(()=>{});
+    } else { window.addEventListener('devicemotion', onMotion); flipReady=true; }
+  }
+  document.addEventListener("pointerdown", ()=>{ unlockAudio(); enableFlip(); }, {once:true});
 
   if("serviceWorker" in navigator){ window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 })();

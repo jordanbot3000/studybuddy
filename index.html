@@ -35,33 +35,31 @@
 
     <div class="board">
       <div class="grid">
-        <button class="tile t-blue" id="key-tile"><span class="tile-label">Key</span><span class="win"><span class="tile-out" id="key-out">&ndash;</span></span></button>
+        <button class="tile t-blue" id="key-tile"><span class="tile-label">Key</span><span class="win"><span class="tile-out" id="key-out"></span></span></button>
         <button class="tile t-purple" id="shape-tile"><span class="tile-label">Shape</span><span class="win"><span class="tile-out" id="shape-out"></span></span></button>
         <button class="tile t-amber" id="die-tile">
           <span class="die-total" id="die-total"></span>
+          <span class="tile-chip" id="die-cfg" role="button" aria-label="Configure dice">d6</span>
           <span class="tile-label">Roll a die</span>
           <span class="win"><span class="tile-out" id="die-out"></span></span>
-          <span class="tile-cfg" id="die-cfg" role="button" aria-label="Configure dice"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v6M9 8h6M6 17h12"/></svg></span>
         </button>
         <button class="tile t-green" id="fret-tile">
+          <span class="tile-chip" id="fret-cfg" role="button" aria-label="Configure fret range">1&ndash;12</span>
           <span class="tile-label">Fret</span>
-          <span class="win"><span class="tile-out" id="fret-out">&ndash;</span></span>
-          <span class="tile-cfg" id="fret-cfg" role="button" aria-label="Configure fret range"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v6M9 8h6M6 17h12"/></svg></span>
+          <span class="win"><span class="tile-out" id="fret-out"></span></span>
         </button>
+      </div>
+
+      <div class="grid gap-top">
+        <button class="tile t-teal" id="dir-tile"><span class="tile-label">Direction</span><span class="win"><span class="tile-out" id="dir-out"></span></span></button>
+        <div class="tile t-coral timer-module empty" id="timer-tile"></div>
       </div>
 
       <div class="drawer" id="drawer"><div class="drawer-inner">
-        <button class="tile t-indigo" id="min-tile"><span class="tile-label">Minors</span><span class="win"><span class="tile-out" id="min-out" style="font-size:18px;">&ndash;</span></span></button>
-        <button class="tile t-rose" id="perm-tile"><span class="tile-label">Permutations</span><span class="win"><span class="tile-out" id="perm-out" style="font-size:26px;">&ndash;</span></span></button>
+        <button class="tile t-cyan" id="min-tile"><span class="tile-label">Minors</span><span class="win"><span class="tile-out" id="min-out" style="font-size:18px;"></span></span></button>
+        <button class="tile t-pink" id="perm-tile"><span class="tile-label">Permutations</span><span class="win"><span class="tile-out" id="perm-out" style="font-size:26px;"></span></span></button>
       </div></div>
-
-      <div class="grid gap-top">
-        <button class="tile t-teal" id="dir-tile"><span class="tile-label">Direction</span><span class="win"><span class="tile-out" id="dir-out">&ndash;</span></span></button>
-        <button class="tile t-rose" id="timer-tile"><span class="tile-label">Timer</span><span class="win"><span class="tile-out" id="timer-out"></span></span></button>
-      </div>
     </div>
-
-    <div class="timers-strip" id="timers-strip"></div>
 
     <div class="met" id="met">
       <div class="met-head">
@@ -75,13 +73,13 @@
       <div class="beats" id="beats"></div>
       <div class="tempo-readout">
         <button class="t-adj" id="minus" aria-label="Decrease tempo">&minus;</button>
-        <div class="tempo-num"><input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute"><span class="tempo-unit">BPM</span></div>
+        <div class="tempo-num"><input type="number" id="bpm-num" value="100" min="10" max="500" inputmode="numeric" aria-label="Tempo in beats per minute"><span class="tempo-unit">BPM</span></div>
         <button class="t-adj" id="plus" aria-label="Increase tempo">+</button>
       </div>
       <div class="dial-wrap" id="dial">
         <svg class="dial-svg" viewBox="0 0 200 200" aria-hidden="true">
           <circle class="dial-ring" cx="100" cy="100" r="84"></circle>
-          <g id="dialTicks"><line class="dial-notch" x1="100" y1="16" x2="100" y2="30"></line></g>
+          <g id="dialTicks"></g>
         </svg>
         <button class="dial-btn" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
       </div>
