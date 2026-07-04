@@ -2,8 +2,8 @@
 (function(){
   "use strict";
 
-  const ICON_PLAY  = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  const ICON_STOP  = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const ICON_STOP = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
   const ICON_TP_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
   const ICON_TP_PLAY  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
@@ -14,6 +14,7 @@
   const minors = ["PD 2m","PD 3m","PD 6m","Open 2m","Open 3m","Open 6m","B+C 2m","B+C 3m","B+C 6m"];
   const NUMWORDS = ["zero","One","Two","Three","Four","Five","Six","Seven","Eight"];
   const SOUNDS = ["chime","beeps","bell","ping","marimba","arcade"];
+  const VOICES = [["classic","Classic"],["warm","Warm"],["sharp","Sharp"]];
 
   const pick = a => a[Math.floor(Math.random()*a.length)];
   const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
@@ -39,7 +40,7 @@
   }
   function renderDie(v, sides, sz){ return sides<=6 ? pipDie(v,sz) : numeralDie(v,sz); }
   function renderDiceRow(pairs){
-    const n=pairs.length, sz = n===1?44:n<=2?36:n<=4?30:24;
+    const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
   function diceCaption(){
@@ -113,7 +114,6 @@
   function closeSheet(){ overlay.classList.remove("open"); }
   overlay.addEventListener("click", e=>{ if(e.target===overlay) closeSheet(); });
 
-  /* Horizontal wheel (time signature) */
   function makeWheel(el, values, current, onChange){
     const CELL=52;
     el.innerHTML = values.map(v=>'<div class="wcell">'+v+'</div>').join('');
@@ -123,8 +123,6 @@
     el.addEventListener('scroll', ()=>{ mark(); clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(values.length-1,Math.round(el.scrollLeft/CELL))); onChange(values[i]); }, 110); });
     setTimeout(()=>{ el.scrollLeft = idx*CELL; mark(); }, 60);
   }
-
-  /* Vertical wheel (Apple-style: frets, timer) */
   function makeVWheel(el, values, current, onChange){
     const CELL=44;
     el.innerHTML = values.map(v=>'<div class="vcell">'+v+'</div>').join('');
@@ -136,25 +134,9 @@
     return el;
   }
 
-  /* ---------- Settings (frets + dice) ---------- */
-  let fmin=1, fmax=12, alarmKind="chime";
-  function openSettings(){
-    openSheet(
-      '<h3>Settings</h3>'+
-      '<div class="sect"><div class="sect-h">Fret range</div>'+
-        '<div class="vwheels"><div class="vwheel-wrap"><span class="vwlabel">Low</span><div class="vwheel" id="frLoW"></div></div>'+
-        '<div class="vwheel-wrap"><span class="vwlabel">High</span><div class="vwheel" id="frHiW"></div></div><div class="vwband"></div></div>'+
-      '</div>'+
-      '<div class="sect"><div class="sect-h">Dice</div>'+
-        '<div class="dicePrev t-amber" id="dicePrev"></div><div class="diceCap" id="diceCap"></div>'+
-        '<div id="diceList"></div><button class="addDie" id="addDie">+ Add die</button>'+
-      '</div>'+
-      '<button class="done" id="setDone">Done</button>'
-    );
-    const fr=[]; for(let i=0;i<=24;i++) fr.push(i);
-    let loW, hiW;
-    loW=makeVWheel($("frLoW"), fr, fmin, v=>{ fmin=v; if(fmin>fmax){ fmax=fmin; hiW&&hiW._scrollTo(fmax); } });
-    hiW=makeVWheel($("frHiW"), fr, fmax, v=>{ fmax=v; if(fmax<fmin){ fmin=fmax; loW&&loW._scrollTo(fmin); } });
+  /* ---------- Dice config (module chip) ---------- */
+  function openDiceCfg(){
+    openSheet('<h3>Dice</h3><div class="dicePrev t-amber" id="dicePrev"></div><div class="diceCap" id="diceCap"></div><div id="diceList"></div><button class="addDie" id="addDie">+ Add die</button><button class="done" id="setDone">Done</button>');
     function renderDiceList(){ $("diceList").innerHTML = dice.map((s,i)=>'<div class="dieRow"><span class="dieRowLabel">Die '+(i+1)+'</span><div class="stp"><button data-act="m" data-i="'+i+'">&minus;</button><span class="v">'+s+'</span><button data-act="p" data-i="'+i+'">+</button></div>'+(dice.length>1?'<button class="rm" data-act="rm" data-i="'+i+'">\u00D7</button>':'<span style="width:30px;flex:0 0 30px"></span>')+'</div>').join(''); }
     function refreshDice(){ renderDiceList(); $("dicePrev").innerHTML = renderDiceRow(dice.map(s=>({v:s,s}))); $("diceCap").textContent = diceCaption(); }
     $("diceList").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; const i=+b.dataset.i,act=b.dataset.act; if(act==="m")dice[i]=Math.max(2,dice[i]-1); else if(act==="p")dice[i]=Math.min(100,dice[i]+1); else if(act==="rm"&&dice.length>1)dice.splice(i,1); refreshDice(); };
@@ -162,7 +144,19 @@
     refreshDice();
     $("setDone").onclick=()=>{ diceDefault(); closeSheet(); };
   }
-  $("settings-btn").onclick = openSettings;
+  $("die-cfg").onclick = e => { e.stopPropagation(); openDiceCfg(); };
+
+  /* ---------- Fret config (module chip) ---------- */
+  let fmin=1, fmax=12;
+  function openFretCfg(){
+    openSheet('<h3>Fret range</h3><div class="vwheels"><div class="vwheel-wrap"><span class="vwlabel">Low</span><div class="vwheel" id="frLoW"></div></div><div class="vwheel-wrap"><span class="vwlabel">High</span><div class="vwheel" id="frHiW"></div></div><div class="vwband"></div></div><button class="done" id="frDone">Done</button>');
+    const fr=[]; for(let i=0;i<=24;i++) fr.push(i);
+    let loW, hiW;
+    loW=makeVWheel($("frLoW"), fr, fmin, v=>{ fmin=v; if(fmin>fmax){ fmax=fmin; hiW&&hiW._scrollTo(fmax); } });
+    hiW=makeVWheel($("frHiW"), fr, fmax, v=>{ fmax=v; if(fmax<fmin){ fmin=fmax; loW&&loW._scrollTo(fmin); } });
+    $("frDone").onclick=closeSheet;
+  }
+  $("fret-cfg").onclick = e => { e.stopPropagation(); openFretCfg(); };
 
   /* ---------- Time signature ---------- */
   let tsNum=4, tsDen=4;
@@ -176,16 +170,23 @@
   }
   $("tsig").onclick = openTimeSig;
 
-  /* ---------- Timers ---------- */
+  /* ---------- Timers (permanent module + strip) ---------- */
   let timers=[], timerTick=null, tMin=5, tSec=0;
   function fmtTime(sec){ sec=Math.max(0,Math.ceil(sec)); const m=Math.floor(sec/60), s=sec%60; return m+':'+pad2(s); }
+  const remOf = t => t.running ? (t.endTime-Date.now())/1000 : t.remaining;
+  function updateTimerTile(){
+    const el=$("timer-out"); if(!el) return;
+    if(timers.length===0){ el.innerHTML='<span class="timer-add">+</span>'; return; }
+    const nearest = timers.slice().sort((a,b)=>remOf(a)-remOf(b))[0];
+    const more = timers.length>1 ? '<span class="timer-more">+'+(timers.length-1)+'</span>' : '';
+    el.innerHTML = '<span class="timer-live'+(nearest.running?'':' paused')+'">'+fmtTime(remOf(nearest))+'</span>'+more;
+  }
   function renderTimers(){
     const strip=$("timers-strip");
-    if(timers.length===0){ strip.innerHTML=""; strip.classList.remove("show"); return; }
+    if(timers.length===0){ strip.innerHTML=""; strip.classList.remove("show"); updateTimerTile(); return; }
     strip.classList.add("show");
     strip.innerHTML = timers.map(t=>{
-      const rem = t.running ? (t.endTime-Date.now())/1000 : t.remaining;
-      const frac = Math.max(0,Math.min(1,rem/t.total));
+      const rem = remOf(t), frac = Math.max(0,Math.min(1,rem/t.total));
       return '<div class="tchip'+(t.running?'':' paused')+'" data-id="'+t.id+'">'
         +'<span class="tstate">'+(t.running?ICON_TP_PAUSE:ICON_TP_PLAY)+'</span>'
         +'<span class="ttime">'+fmtTime(rem)+'</span>'
@@ -193,6 +194,7 @@
         +'<div class="tbar"><div class="tbar-fill" style="width:'+(frac*100)+'%"></div></div>'
         +'</div>';
     }).join('');
+    updateTimerTile();
   }
   function ensureTimerTick(){
     if(timerTick) return;
@@ -209,15 +211,13 @@
     const chip=e.target.closest(".tchip"); if(!chip) return;
     const t=timers.filter(x=>x.id===chip.dataset.id)[0]; if(!t) return;
     if(e.target.closest(".tx")){ timers=timers.filter(x=>x.id!==t.id); }
-    else { // whole chip toggles pause (large target)
-      if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; }
-      else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); }
-    }
+    else { if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; } else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); } }
     renderTimers();
   });
+  let alarmKind="chime";
   function openTimer(){
     const soundList = SOUNDS.map(k=>'<button class="sound-opt'+(k===alarmKind?' sel':'')+'" data-k="'+k+'"><span>'+cap(k)+'</span><span class="chk">'+CHECK+'</span></button>').join('');
-    openSheet('<h3>Timer</h3>'
+    openSheet('<h3>New timer</h3>'
       +'<div class="vwheels tw"><div class="vwheel-wrap"><span class="vwlabel">min</span><div class="vwheel" id="wMin"></div></div>'
       +'<div class="vwsep">:</div>'
       +'<div class="vwheel-wrap"><span class="vwlabel">sec</span><div class="vwheel" id="wSec"></div></div><div class="vwband"></div></div>'
@@ -239,10 +239,12 @@
     $("almList").onclick=e=>{ const b=e.target.closest(".sound-opt"); if(!b)return; alarmKind=b.dataset.k; [].forEach.call(e.currentTarget.children,c=>c.classList.toggle("sel",c===b)); playAlarm(alarmKind); };
     $("tAdd").onclick=()=>{ if(tMin*60+tSec>0){ addTimer(tMin*60+tSec); closeSheet(); } };
   }
-  $("timer-btn").onclick = openTimer;
+  $("timer-tile").onclick = () => openTimer();
+  updateTimerTile();
 
   /* ---------- Audio ---------- */
   let ctx=null, master=null, playing=false, bpm=100, mult=1, beatsPerBar=4, nextTime=0, tick=0, timer=null;
+  let clickVoice="sharp", clickVol=1;
   const queue=[]; let beatEls=[];
   const metEl=$("met");
   const playIcon=$("play-icon"), playText=$("play-text");
@@ -252,7 +254,7 @@
     if(!ctx){
       ctx = new (window.AudioContext||window.webkitAudioContext)();
       master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-      ctx.onstatechange = ()=>{ if(ctx.state==="interrupted" || ctx.state==="suspended"){ ctx.resume(); } };
+      ctx.onstatechange = ()=>{ if(!document.hidden && (ctx.state==="interrupted"||ctx.state==="suspended")){ ctx.resume(); } };
     }
     if(ctx.state!=="running") ctx.resume();
     return ctx;
@@ -260,7 +262,11 @@
   function unlockAudio(){ try{ ensureCtx(); const b=ctx.createBuffer(1,1,22050); const s=ctx.createBufferSource(); s.buffer=b; s.connect(master); s.start(0); }catch(e){} }
   document.addEventListener("pointerdown", unlockAudio, {once:true});
   function recover(){ if(ctx){ if(ctx.state!=="running") ctx.resume(); if(playing){ nextTime = ctx.currentTime + 0.06; queue.length=0; } } }
-  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) recover(); });
+  // Suspend audio the moment we go to background so no stray click leaks out on sleep.
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden){ if(ctx && ctx.state==="running"){ try{ ctx.suspend(); }catch(e){} } }
+    else { recover(); }
+  });
   window.addEventListener("focus", recover);
   window.addEventListener("pageshow", recover);
 
@@ -301,16 +307,44 @@
   }
   buildBeats();
 
-  /* Sharp, piercing click — original single tick, brighter + louder */
+  /* Three click voices: classic (sine) / warm (triangle+body) / sharp (square) */
   function clickSound(time, kind){
-    const cfg = kind==="accent"?{f:2200,v:1.0} : kind==="med"?{f:1800,v:0.82} : kind==="main"?{f:1660,v:0.78} : {f:1245,v:0.42};
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type="square"; o.frequency.value=cfg.f;
-    g.gain.setValueAtTime(0.0001,time);
-    g.gain.exponentialRampToValueAtTime(cfg.v,time+0.0006);   // very sharp attack
-    g.gain.exponentialRampToValueAtTime(0.0001,time+0.032);   // tight decay
-    o.connect(g); g.connect(master); o.start(time); o.stop(time+0.04);
+    const V=clickVol;
+    if(clickVoice==="classic"){
+      const cfg = kind==="accent"?{f:1600,v:0.9}:kind==="med"?{f:1300,v:0.7}:kind==="main"?{f:1050,v:0.6}:{f:900,v:0.28};
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.05);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.06);
+    } else if(clickVoice==="warm"){
+      const cfg = kind==="accent"?{f:1150,v:1.0}:kind==="med"?{f:980,v:0.78}:kind==="main"?{f:820,v:0.7}:{f:640,v:0.34};
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="triangle"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.07);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.08);
+      const o2=ctx.createOscillator(), g2=ctx.createGain(); o2.type="sine"; o2.frequency.value=cfg.f*0.5;
+      g2.gain.setValueAtTime(0.0001,time); g2.gain.exponentialRampToValueAtTime(cfg.v*0.6*V,time+0.002); g2.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
+      o2.connect(g2); g2.connect(master); o2.start(time); o2.stop(time+0.11);
+    } else {
+      const cfg = kind==="accent"?{f:2200,v:1.0}:kind==="med"?{f:1800,v:0.82}:kind==="main"?{f:1660,v:0.78}:{f:1245,v:0.42};
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type="square"; o.frequency.value=cfg.f;
+      g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v*V,time+0.0006); g.gain.exponentialRampToValueAtTime(0.0001,time+0.032);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.04);
+    }
   }
+  function previewClick(){ ensureCtx(); const t=ctx.currentTime+0.04; ["accent","main","main","main"].forEach((k,i)=>clickSound(t+i*0.25,k)); }
+
+  function openMetSound(){
+    const list = VOICES.map(([k,label])=>'<button class="sound-opt'+(k===clickVoice?' sel':'')+'" data-k="'+k+'"><span>'+label+'</span><span class="chk">'+CHECK+'</span></button>').join('');
+    openSheet('<h3>Metronome sound</h3><div class="sound-list" id="voiceList">'+list+'</div>'
+      +'<div class="sect-h" style="margin-top:16px">Volume</div><div class="volrow"><input type="range" id="volRange" min="20" max="100" value="'+Math.round(clickVol*100)+'"></div>'
+      +'<button class="done" id="msDone">Done</button>');
+    $("voiceList").onclick=e=>{ const b=e.target.closest(".sound-opt"); if(!b)return; clickVoice=b.dataset.k; [].forEach.call(e.currentTarget.children,c=>c.classList.toggle("sel",c===b)); previewClick(); };
+    const vr=$("volRange");
+    vr.oninput=()=>{ clickVol=vr.value/100; };
+    vr.onchange=()=>{ clickVol=vr.value/100; previewClick(); };
+    $("msDone").onclick=closeSheet;
+  }
+  $("met-sound-btn").onclick = openMetSound;
+
   function schedule(){
     if(ctx.currentTime - nextTime > 0.2){ nextTime = ctx.currentTime + 0.06; queue.length=0; }
     const group = (tsDen===8 && tsNum%3===0 && tsNum>3) ? 3 : tsNum;
@@ -339,24 +373,12 @@
   const multBtn=$("mult");
   multBtn.addEventListener("click", () => { const on = multBtn.classList.toggle("active"); multBtn.setAttribute("aria-pressed", on); $("subind").classList.toggle("on", on); mult = on ? 2 : 1; });
 
-  /* ---------- Circular tempo dial (360° spinner, transport in center) ---------- */
+  /* ---------- Circular tempo dial (spin, transport in center) ---------- */
   const dial=$("dial"), num=$("bpm-num");
-  (function(){
-    let tk='';
-    for(let i=0;i<48;i++){
-      const ang=i*(360/48), long=(i%4===0);
-      const r1=long?74:81, r2=90, rad=(ang-90)*Math.PI/180;
-      const x1=(100+r1*Math.cos(rad)).toFixed(1), y1=(100+r1*Math.sin(rad)).toFixed(1);
-      const x2=(100+r2*Math.cos(rad)).toFixed(1), y2=(100+r2*Math.sin(rad)).toFixed(1);
-      tk+='<line class="tick'+(long?' long':'')+'" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'"/>';
-    }
-    $("dialTicks").innerHTML=tk;
-  })();
   const clamp = v => Math.max(40,Math.min(240,v));
   function setBpm(v){ bpm=clamp(Math.round(v)); num.value=bpm; updateTempo(); }
-
   let wheelRot=0, dragging=false, lastAng=0;
-  const GAIN = 20; // BPM per radian of spin
+  const GAIN = 20;
   function angOf(e){ const r=dial.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); }
   dial.addEventListener("pointerdown", e=>{ if(e.target.closest("#play-btn")) return; dragging=true; lastAng=angOf(e); try{dial.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
   dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); setBpm(bpm + d*GAIN); lastAng=a; });
