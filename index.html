@@ -108,18 +108,21 @@
           </div>
         </div>
         <div class="beats" id="beats"></div>
-        <div class="knob-wrap" id="knob">
-          <svg class="knob" viewBox="0 0 100 100" aria-hidden="true">
-            <path class="knob-track" id="knobTrack"></path>
-            <path class="knob-arc" id="knobArc"></path>
-            <circle class="knob-handle" id="knobHandle" r="5"></circle>
-          </svg>
-          <div class="knob-center">
-            <input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute">
-            <small>BPM</small>
+        <div class="dial-row">
+          <button class="dial-step" id="minus" aria-label="Decrease tempo">&minus;</button>
+          <div class="dial-wrap" id="dial">
+            <svg class="dial-svg" viewBox="0 0 100 100" aria-hidden="true">
+              <path class="dial-track" id="dialTrack"></path>
+              <path class="dial-arc" id="dialArc"></path>
+              <g id="dialPointer"><line class="dial-needle" x1="50" y1="50" x2="50" y2="17"></line><circle class="dial-dot" cx="50" cy="17" r="4.5"></circle></g>
+            </svg>
+            <div class="dial-center">
+              <input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute">
+              <small>BPM</small>
+            </div>
           </div>
+          <button class="dial-step" id="plus" aria-label="Increase tempo">+</button>
         </div>
-        <div class="knob-steps"><div class="stepper"><button id="minus" aria-label="Decrease tempo">&minus;</button><button id="plus" aria-label="Increase tempo">+</button></div></div>
         <div class="met-ctrl">
           <button class="play" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
           <button class="tap" id="tap-btn">Tap</button>
