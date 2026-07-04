@@ -108,25 +108,21 @@
           </div>
         </div>
         <div class="beats" id="beats"></div>
-        <div class="dial-row">
-          <button class="dial-step" id="minus" aria-label="Decrease tempo">&minus;</button>
-          <div class="dial-wrap" id="dial">
-            <svg class="dial-svg" viewBox="0 0 100 100" aria-hidden="true">
-              <path class="dial-track" id="dialTrack"></path>
-              <path class="dial-arc" id="dialArc"></path>
-              <g id="dialPointer"><line class="dial-needle" x1="50" y1="50" x2="50" y2="17"></line><circle class="dial-dot" cx="50" cy="17" r="4.5"></circle></g>
-            </svg>
-            <div class="dial-center">
-              <input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute">
-              <small>BPM</small>
-            </div>
-          </div>
-          <button class="dial-step" id="plus" aria-label="Increase tempo">+</button>
+        <div class="tempo-readout">
+          <button class="t-adj" id="minus" aria-label="Decrease tempo">&minus;</button>
+          <div class="tempo-num"><input type="number" id="bpm-num" value="100" min="40" max="240" inputmode="numeric" aria-label="Tempo in beats per minute"><span class="tempo-unit">BPM</span></div>
+          <button class="t-adj" id="plus" aria-label="Increase tempo">+</button>
         </div>
-        <div class="met-ctrl">
-          <button class="play" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
-          <button class="tap" id="tap-btn">Tap</button>
+        <div class="dial-wrap" id="dial">
+          <svg class="dial-svg" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="dial-bg" cx="100" cy="100" r="94"></circle>
+            <g id="dialTicks"></g>
+            <circle class="dial-edge" cx="100" cy="100" r="94"></circle>
+            <path class="dial-mark" d="M100 6 L95 15 L105 15 Z"></path>
+          </svg>
+          <button class="dial-btn" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
         </div>
+        <button class="tap-btn" id="tap-btn">Tap tempo</button>
       </div>
 
       <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>

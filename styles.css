@@ -191,35 +191,68 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 /* ===== Header actions ===== */
 .hero-actions{margin-left:auto;display:flex;gap:2px;}
 
-/* ===== Rotary tempo dial ===== */
-.dial-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 12px;}
-.dial-step{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.dial-step:active{background:rgba(120,120,120,.15);}
-.dial-wrap{position:relative;width:150px;height:150px;flex:0 0 auto;touch-action:none;cursor:grab;}
+/* ===== Tempo readout (above dial) ===== */
+.tempo-readout{display:flex;align-items:center;justify-content:center;gap:18px;margin:2px 0 6px;}
+.t-adj{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);font-size:21px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.t-adj:active{background:rgba(120,120,120,.15);}
+.tempo-num{display:flex;flex-direction:column;align-items:center;}
+.tempo-num #bpm-num{width:128px;text-align:center;font-size:46px;font-weight:600;color:var(--tempo);background:transparent;border:none;font-family:inherit;padding:0;line-height:1;-moz-appearance:textfield;appearance:textfield;transition:color .25s ease;}
+.tempo-num #bpm-num:focus{outline:none;}
+.tempo-num #bpm-num::-webkit-inner-spin-button,.tempo-num #bpm-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+.tempo-unit{font-size:11px;color:var(--text-secondary);letter-spacing:.09em;margin-top:-1px;}
+
+/* ===== Circular dial (spinnable) with center transport ===== */
+.dial-wrap{position:relative;width:196px;height:196px;margin:2px auto 8px;touch-action:none;cursor:grab;}
 .dial-wrap:active{cursor:grabbing;}
 .dial-svg{width:100%;height:100%;display:block;}
-.dial-track{fill:none;stroke:var(--border-strong);stroke-width:5;stroke-linecap:round;}
-.dial-arc{fill:none;stroke:var(--tempo);stroke-width:5;stroke-linecap:round;transition:stroke .25s ease;}
-.dial-needle{stroke:var(--tempo);stroke-width:3;stroke-linecap:round;transition:stroke .25s ease;}
-.dial-dot{fill:var(--surface-2);stroke:var(--tempo);stroke-width:2.5;transition:stroke .25s ease;}
-.dial-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
-.dial-center #bpm-num{pointer-events:auto;width:100px;font-size:38px;font-weight:600;color:var(--tempo);text-align:center;background:transparent;border:none;font-family:inherit;padding:0;line-height:1;-moz-appearance:textfield;appearance:textfield;transition:color .25s ease;}
-.dial-center #bpm-num:focus{outline:none;}
-.dial-center #bpm-num::-webkit-inner-spin-button,.dial-center #bpm-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-.dial-center small{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+.dial-bg{fill:var(--surface-2);}
+.dial-edge{fill:none;stroke:var(--border);stroke-width:2;}
+.dial-mark{fill:var(--tempo);transition:fill .25s ease;}
+.tick{stroke:var(--border-strong);stroke-width:2;stroke-linecap:round;}
+.tick.long{stroke:var(--tempo);stroke-width:3;stroke-linecap:round;transition:stroke .25s ease;}
+.dial-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:108px;height:108px;border-radius:50%;border:none;background:#378ADD;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 8px 20px rgba(55,138,221,.42);transition:transform .12s ease,background .2s ease;}
+.dial-btn:active{transform:translate(-50%,-50%) scale(.95);}
+.dial-btn svg{display:block;}
+.dial-btn #play-text{font-size:13px;font-weight:600;letter-spacing:.02em;}
+.met.running .dial-btn{background:#C4485F;box-shadow:0 8px 20px rgba(196,72,95,.42);}
+.tap-btn{display:block;margin:2px auto 0;padding:10px 22px;border-radius:12px;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);font-size:14px;font-weight:500;cursor:pointer;}
+.tap-btn:active{background:rgba(120,120,120,.12);}
 
-/* ===== Timers ===== */
+/* ===== Vertical wheels (frets + timer) ===== */
+.vwheels{position:relative;display:flex;justify-content:center;gap:22px;margin:6px 0 4px;}
+.vwheels.tw{gap:4px;align-items:flex-start;}
+.vwheel-wrap{display:flex;flex-direction:column;align-items:center;}
+.vwlabel{font-size:11px;color:var(--text-secondary);letter-spacing:.05em;margin-bottom:2px;}
+.vwsep{align-self:center;font-size:30px;font-weight:600;color:var(--text-secondary);padding:0 4px;margin-top:16px;}
+.vwheel{height:132px;width:82px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:44px 0;-webkit-mask-image:linear-gradient(180deg,transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(180deg,transparent,#000 32%,#000 68%,transparent);}
+.vwheel::-webkit-scrollbar{display:none;}
+.vcell{height:44px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;color:var(--text-secondary);opacity:.35;transition:opacity .15s,transform .15s,color .15s;}
+.vcell.mid{opacity:1;color:var(--text-primary);transform:scale(1.12);}
+.vwband{position:absolute;top:50%;left:0;right:0;height:44px;transform:translateY(-50%);border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);pointer-events:none;}
+.vwheels.tw .vwband{top:calc(50% + 8px);}
+
+/* ===== Timer type-in ===== */
+.typerow{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:6px 0 18px;}
+.typerow input{width:54px;text-align:center;font-size:17px;font-weight:600;color:var(--text-primary);background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:9px;padding:7px 4px;font-family:inherit;}
+.typerow input:focus{outline:none;border-color:var(--text-accent);}
+
+/* ===== Sound list ===== */
+.sound-list{display:flex;flex-direction:column;border:0.5px solid var(--border-strong);border-radius:12px;overflow:hidden;margin-bottom:8px;}
+.sound-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 14px;background:transparent;border:none;border-bottom:0.5px solid var(--border);color:var(--text-primary);font-size:15px;cursor:pointer;text-align:left;}
+.sound-opt:last-child{border-bottom:none;}
+.sound-opt:active{background:var(--surface-1);}
+.sound-opt.sel{color:var(--text-accent);font-weight:600;}
+.sound-opt .chk{opacity:0;color:var(--text-accent);display:flex;}
+.sound-opt.sel .chk{opacity:1;}
+
+/* ===== Timers strip (whole chip = pause target) ===== */
 .timers-strip{display:none;flex-wrap:wrap;gap:8px;padding:0 16px 6px;}
 .timers-strip.show{display:flex;}
-.tchip{position:relative;display:flex;align-items:center;gap:6px;background:var(--surface-1);border-radius:12px;padding:7px 9px 10px;overflow:hidden;}
-.tchip .ttime{font-size:16px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums;min-width:42px;text-align:center;}
+.tchip{position:relative;display:flex;align-items:center;gap:9px;background:var(--surface-1);border-radius:13px;padding:11px 12px 14px;overflow:hidden;cursor:pointer;min-width:120px;}
+.tchip:active{background:var(--surface-2);}
+.tchip .tstate{display:flex;align-items:center;color:var(--text-secondary);}
+.tchip .ttime{font-size:18px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums;}
 .tchip.paused .ttime{opacity:.5;}
-.tchip .tbtn{width:24px;height:24px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.tchip .tx{margin-left:auto;width:26px;height:26px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;padding:0;font-size:18px;line-height:1;}
 .tbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent;}
 .tbar-fill{height:100%;background:var(--tempo,var(--text-accent));transition:width .3s linear;}
-.tprev{text-align:center;font-size:40px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums;margin-bottom:16px;}
-
-/* ===== Sound pills ===== */
-.pills.left{justify-content:flex-start;}
-.pill{transition:background .12s ease,color .12s ease,border-color .12s ease;}
-.pill.sel{background:#378ADD;color:#fff;border-color:#378ADD;box-shadow:0 1px 4px rgba(55,138,221,.4);}
