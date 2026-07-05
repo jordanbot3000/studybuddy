@@ -35,23 +35,23 @@
 
     <div class="board">
       <div class="grid">
-        <button class="tile t-blue" id="key-tile"><span class="tile-label">Key</span><span class="win"><span class="tile-out" id="key-out"></span></span></button>
+        <button class="tile t-blue" id="key-tile"><span class="tile-label">Key</span><span class="win"><span class="tile-out" id="key-out">C</span></span></button>
         <button class="tile t-purple" id="shape-tile"><span class="tile-label">Shape</span><span class="win"><span class="tile-out" id="shape-out"></span></span></button>
         <button class="tile t-amber" id="die-tile">
-          <span class="tile-chip" id="die-cfg" role="button" aria-label="Configure dice">d6</span>
+          <span class="die-cfg-glyph" id="die-cfg" role="button" aria-label="Configure dice">+</span>
           <span class="die-total" id="die-total"></span>
           <span class="tile-label">Roll a die</span>
           <span class="win"><span class="tile-out" id="die-out"></span></span>
         </button>
         <button class="tile t-green" id="fret-tile">
-          <span class="tile-chip" id="fret-cfg" role="button" aria-label="Configure fret range">1&ndash;12</span>
           <span class="tile-label">Fret</span>
-          <span class="win"><span class="tile-out" id="fret-out"></span></span>
+          <span class="win"><span class="tile-out" id="fret-out">1</span></span>
+          <span class="tile-sub">hold for options</span>
         </button>
       </div>
 
       <div class="grid gap-top">
-        <button class="tile t-teal" id="dir-tile"><span class="tile-label">Direction</span><span class="win"><span class="tile-out" id="dir-out"></span></span></button>
+        <button class="tile t-teal" id="dir-tile"><span class="tile-label">Direction</span><span class="win"><span class="tile-out" id="dir-out">↑ Ascending</span></span></button>
         <div class="tile t-pink timer-module empty" id="timer-tile"></div>
       </div>
 
