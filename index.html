@@ -38,8 +38,8 @@
         <button class="tile t-blue" id="key-tile"><span class="tile-label">Key</span><span class="win"><span class="tile-out" id="key-out"></span></span></button>
         <button class="tile t-purple" id="shape-tile"><span class="tile-label">Shape</span><span class="win"><span class="tile-out" id="shape-out"></span></span></button>
         <button class="tile t-amber" id="die-tile">
-          <span class="die-total" id="die-total"></span>
           <span class="tile-chip" id="die-cfg" role="button" aria-label="Configure dice">d6</span>
+          <span class="die-total" id="die-total"></span>
           <span class="tile-label">Roll a die</span>
           <span class="win"><span class="tile-out" id="die-out"></span></span>
         </button>
@@ -52,12 +52,12 @@
 
       <div class="grid gap-top">
         <button class="tile t-teal" id="dir-tile"><span class="tile-label">Direction</span><span class="win"><span class="tile-out" id="dir-out"></span></span></button>
-        <div class="tile t-coral timer-module empty" id="timer-tile"></div>
+        <div class="tile t-pink timer-module empty" id="timer-tile"></div>
       </div>
 
       <div class="drawer" id="drawer"><div class="drawer-inner">
-        <button class="tile t-cyan" id="min-tile"><span class="tile-label">Minors</span><span class="win"><span class="tile-out" id="min-out" style="font-size:18px;"></span></span></button>
-        <button class="tile t-pink" id="perm-tile"><span class="tile-label">Permutations</span><span class="win"><span class="tile-out" id="perm-out" style="font-size:26px;"></span></span></button>
+        <button class="tile t-indigo" id="min-tile"><span class="tile-label">Minors</span><span class="win"><span class="tile-out" id="min-out" style="font-size:18px;"></span></span></button>
+        <button class="tile t-coral" id="perm-tile"><span class="tile-label">Permutations</span><span class="win"><span class="tile-out" id="perm-out" style="font-size:26px;"></span></span></button>
       </div></div>
     </div>
 
@@ -78,8 +78,9 @@
       </div>
       <div class="dial-wrap" id="dial">
         <svg class="dial-svg" viewBox="0 0 200 200" aria-hidden="true">
-          <circle class="dial-ring" cx="100" cy="100" r="84"></circle>
-          <g id="dialTicks"></g>
+          <circle class="dial-disc" cx="100" cy="100" r="86"></circle>
+          <circle class="dial-ring" cx="100" cy="100" r="86"></circle>
+          <g id="dialTicks"><line class="dial-grip" x1="100" y1="15" x2="100" y2="31"></line></g>
         </svg>
         <button class="dial-btn" id="play-btn"><span id="play-icon"></span><span id="play-text">Start</span></button>
       </div>

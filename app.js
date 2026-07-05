@@ -4,11 +4,8 @@
 
   const ICON_PLAY = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const ICON_STOP = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
-  const ICON_TP_PAUSE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
-  const ICON_TP_PLAY  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const CHECK  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  const ICON_X_SM = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
   const notes  = ["C","C\u266F","D\u266D","D","D\u266F","E\u266D","E","F","F\u266F","G\u266D","G","G\u266F","A\u266D","A","A\u266F","B\u266D","B"];
   const dirs   = [{t:"Ascending",a:"\u2191"},{t:"Descending",a:"\u2193"}];
@@ -25,6 +22,8 @@
   const $ = id => document.getElementById(id);
   const mascot = $("mascot");
   function hop(){ mascot.classList.remove("hop"); void mascot.offsetWidth; mascot.classList.add("hop"); }
+
+  document.addEventListener('contextmenu', e=>e.preventDefault());   // kill long-press callout everywhere
 
   /* ---------- Dice ---------- */
   const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
@@ -44,10 +43,7 @@
     const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
-  function diceChipText(){
-    if(dice.length===1) return 'd'+dice[0];
-    return dice.every(s=>s===dice[0]) ? (dice.length+'d'+dice[0]) : (dice.length+' dice');
-  }
+  function diceChipText(){ if(dice.length===1) return 'd'+dice[0]; return dice.every(s=>s===dice[0]) ? (dice.length+'d'+dice[0]) : (dice.length+' dice'); }
   function updateDiceChip(){ const c=$("die-cfg"); if(c) c.textContent=diceChipText(); }
   function showTotal(sum){ const t=$("die-total"); t.textContent=sum; t.classList.add("show"); }
   function diceDefault(){ $("die-out").innerHTML = renderDiceRow(dice.map(s=>({v:1,s}))); showTotal(dice.length); }
@@ -65,7 +61,7 @@
     step();
   }
 
-  /* ---------- Reel ---------- */
+  /* ---------- Reel (slot style — good for many-option modules) ---------- */
   function reel(id, sampleHTML){
     const el = $(id);
     if(el._spin) return;
@@ -81,7 +77,8 @@
   $("die-tile").onclick  = () => rollDice();
   $("perm-tile").onclick = () => reel("perm-out", ()=>pick(perms));
   $("min-tile").onclick  = () => reel("min-out", ()=>pick(minors));
-  $("dir-tile").onclick  = () => reel("dir-out", ()=>{ const d=pick(dirs); return d.a+" "+d.t; });
+  /* Direction: single clean pop instead of the jittery slot reel */
+  $("dir-tile").onclick  = () => { const d=pick(dirs); const el=$("dir-out"); el.style.animation='none'; void el.offsetWidth; el.textContent=d.a+" "+d.t; el.style.animation='dirpop .3s ease'; hop(); };
 
   /* ---------- Shape (SVG) ---------- */
   const shapes = ["C","A","G","E","D"];
@@ -109,7 +106,7 @@
 
   $("ps-toggle").addEventListener("change", e => $("drawer").classList.toggle("open", e.target.checked));
 
-  /* ---------- Sheet (with cancel/X) ---------- */
+  /* ---------- Sheet ---------- */
   const overlay=$("overlay"), sheet=$("sheet");
   let sheetCancel=null;
   function openSheet(title, body, onCancel){
@@ -121,7 +118,6 @@
   function closeSheet(){ sheetCancel=null; overlay.classList.remove("open"); }
   overlay.addEventListener("click", e=>{ if(e.target===overlay){ const c=sheetCancel; sheetCancel=null; if(c)c(); closeSheet(); } });
 
-  /* Horizontal wheel (time signature) */
   function makeWheel(el, values, current, onChange){
     const CELL=52;
     el.innerHTML = values.map(v=>'<div class="wcell">'+v+'</div>').join('');
@@ -132,7 +128,7 @@
     setTimeout(()=>{ el.scrollLeft = idx*CELL; mark(); }, 60);
   }
 
-  /* Vertical wheel: pointer-drag (captures gesture, no page pull) + tap-to-type. Values must be contiguous ints. */
+  /* Vertical wheel: free-spinning momentum + tap-to-type. Values must be contiguous ints. */
   function makeVWheel(el, values, current, onChange, opts){
     opts=opts||{};
     const CELL=44, H=176, baseline=H/2-CELL/2, n=values.length, speed=opts.speed||1;
@@ -141,21 +137,22 @@
     const input=document.createElement('input'); input.type='text'; input.inputMode='numeric'; input.className='vtype';
     el.innerHTML=''; el.appendChild(list); el.appendChild(input);
     const maxPos=(n-1)*CELL;
-    let pos=Math.max(0,values.indexOf(current))*CELL;
+    let pos=Math.max(0,values.indexOf(current))*CELL, raf=0;
     const clampPos=p=>Math.max(0,Math.min(maxPos,p));
     const curIdx=()=>Math.max(0,Math.min(n-1,Math.round(pos/CELL)));
     function paint(anim){
-      list.style.transition = anim?'transform .24s cubic-bezier(.2,.85,.3,1)':'none';
+      list.style.transition = anim?'transform .2s cubic-bezier(.2,.8,.3,1)':'none';
       list.style.transform='translateY('+(baseline-pos)+'px)';
       const ci=curIdx();
       for(let j=0;j<n;j++) list.children[j].classList.toggle('mid', j===ci);
     }
     function commit(){ onChange(values[curIdx()]); }
+    function stopAnim(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
     paint(false);
-    let dragging=false, moved=false, startY=0, startPos=0, lastY=0, lastT=0, vel=0;
+    let dragging=false, moved=false, startY=0, startPos=0, lastY=0, lastT=0, pv=0;
     el.addEventListener('pointerdown', e=>{
       if(e.target===input) return;
-      dragging=true; moved=false; startY=e.clientY; startPos=pos; lastY=e.clientY; lastT=e.timeStamp; vel=0;
+      stopAnim(); dragging=true; moved=false; startY=e.clientY; startPos=pos; lastY=e.clientY; lastT=e.timeStamp; pv=0;
       try{el.setPointerCapture(e.pointerId);}catch(_){}
       e.preventDefault();
     });
@@ -163,23 +160,34 @@
       if(!dragging) return;
       const dy=e.clientY-startY; if(Math.abs(dy)>4) moved=true;
       pos=clampPos(startPos - dy*speed);
-      const dt=e.timeStamp-lastT; if(dt>0){ vel=(e.clientY-lastY)/dt; } lastY=e.clientY; lastT=e.timeStamp;
+      const dt=e.timeStamp-lastT; if(dt>0){ pv=Math.max(-2.6,Math.min(2.6, -((e.clientY-lastY)/dt)*speed)); }
+      lastY=e.clientY; lastT=e.timeStamp;
       paint(false);
     });
-    function end(){
+    function fling(){
+      let last=performance.now();
+      (function frame(now){
+        const dt=Math.min(34, now-last); last=now;
+        pos += pv*dt;
+        if(pos<0){ pos=0; pv=0; } else if(pos>maxPos){ pos=maxPos; pv=0; }
+        paint(false);
+        pv *= Math.pow(0.95, dt/16.67);
+        if(Math.abs(pv) > 0.02){ raf=requestAnimationFrame(frame); }
+        else { raf=0; pos=clampPos(Math.round(pos/CELL)*CELL); paint(true); commit(); }
+      })(performance.now());
+    }
+    el.addEventListener('pointerup', ()=>{
       if(!dragging) return; dragging=false;
       if(!moved){ openType(); return; }
-      let proj = clampPos(pos - vel*speed*90);
-      pos = clampPos(Math.round(proj/CELL)*CELL);
-      paint(true); commit();
-    }
-    el.addEventListener('pointerup', end);
+      if(Math.abs(pv) > 0.05) fling();
+      else { pos=clampPos(Math.round(pos/CELL)*CELL); paint(true); commit(); }
+    });
     el.addEventListener('pointercancel', ()=>{ dragging=false; });
     function openType(){ input.value=values[curIdx()]; input.style.display='block'; setTimeout(()=>{ input.focus(); try{input.select();}catch(_){} },0); }
     input.addEventListener('input', ()=>{ let v=parseInt(input.value.replace(/\D/g,''),10); if(isNaN(v)) return; v=Math.max(values[0],Math.min(values[n-1],v)); pos=clampPos((v-values[0])*CELL); paint(false); commit(); });
     input.addEventListener('blur', ()=>{ input.style.display='none'; pos=clampPos(Math.round(pos/CELL)*CELL); paint(true); commit(); });
     input.addEventListener('keydown', e=>{ if(e.key==='Enter') input.blur(); });
-    el._scrollTo=(v)=>{ const i=values.indexOf(v); if(i>=0){ pos=i*CELL; paint(true); } };
+    el._scrollTo=(v)=>{ const i=values.indexOf(v); if(i>=0){ stopAnim(); pos=i*CELL; paint(true); } };
     return el;
   }
 
@@ -190,7 +198,7 @@
       '<div class="dicePrev t-amber" id="dicePrev"></div><div class="diceCap" id="diceCap"></div><div id="diceList"></div><button class="addDie" id="addDie">+ Add die</button><button class="done" id="setDone">Done</button>',
       ()=>{ dice=snap.slice(); diceDefault(); updateDiceChip(); });
     function renderDiceList(){ $("diceList").innerHTML = dice.map((s,i)=>'<div class="dieRow"><span class="dieRowLabel">Die '+(i+1)+'</span><div class="stp"><button data-act="m" data-i="'+i+'">&minus;</button><span class="v">'+s+'</span><button data-act="p" data-i="'+i+'">+</button></div>'+(dice.length>1?'<button class="rm" data-act="rm" data-i="'+i+'">\u00D7</button>':'<span style="width:30px;flex:0 0 30px"></span>')+'</div>').join(''); }
-    function refresh(){ renderDiceList(); $("dicePrev").innerHTML = renderDiceRow(dice.map(s=>({v:s,s}))); $("diceCap").textContent = (function(){const same=dice.every(s=>s===dice[0]); return same?(dice.length+' \u00D7 '+dice[0]+'-sided'):dice.map(s=>s+'-sided').join(' \u00B7 ');})(); updateDiceChip(); }
+    function refresh(){ renderDiceList(); $("dicePrev").innerHTML = renderDiceRow(dice.map(s=>({v:s,s}))); $("diceCap").textContent = (dice.every(s=>s===dice[0])?(dice.length+' \u00D7 '+dice[0]+'-sided'):dice.map(s=>s+'-sided').join(' \u00B7 ')); updateDiceChip(); }
     $("diceList").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; const i=+b.dataset.i,act=b.dataset.act; if(act==="m")dice[i]=Math.max(2,dice[i]-1); else if(act==="p")dice[i]=Math.min(100,dice[i]+1); else if(act==="rm"&&dice.length>1)dice.splice(i,1); refresh(); };
     $("addDie").onclick=()=>{ if(dice.length<8){ dice.push(6); refresh(); } };
     refresh();
@@ -230,8 +238,8 @@
   }
   $("tsig").onclick = openTimeSig;
 
-  /* ---------- Timers (permanent module, swipe carousel) ---------- */
-  let timers=[], timerTick=null, tMin=5, tSec=0;
+  /* ---------- Timer (permanent module, matches other tiles) ---------- */
+  let timers=[], timerTick=null, tMin=5, tSec=0, activeTid=null;
   function fmtTime(sec){ sec=Math.max(0,Math.ceil(sec)); const m=Math.floor(sec/60), s=sec%60; return m+':'+pad2(s); }
   const remOf = t => t.running ? (t.endTime-Date.now())/1000 : t.remaining;
   function renderDots(nn, active){
@@ -240,46 +248,36 @@
     active=Math.max(0,Math.min(nn-1,active));
     const MAX=7; let html='';
     if(nn<=MAX){ for(let i=0;i<nn;i++) html+='<span class="tdot'+(i===active?' on':'')+'"></span>'; }
-    else{
-      let start=Math.max(0,Math.min(active-3,nn-MAX));
+    else{ let start=Math.max(0,Math.min(active-3,nn-MAX));
       for(let s=0;s<MAX;s++){ const i=start+s; let cls='tdot'; if(i===active)cls+=' on';
         if((s===0&&start>0)||(s===MAX-1&&start+MAX<nn)) cls+=' xs';
         else if((s===1&&start>0)||(s===MAX-2&&start+MAX<nn)) cls+=' sm';
-        html+='<span class="'+cls+'"></span>'; }
-    }
+        html+='<span class="'+cls+'"></span>'; } }
     el.innerHTML=html;
   }
   function renderTimerModule(){
     const host=$("timer-tile"); if(!host) return;
     if(timers.length===0){
-      host.classList.add('empty');
-      host.innerHTML='<span class="tile-label">Timer</span><div class="timer-empty">00:00</div>';
+      host.classList.add('empty'); activeTid=null;
+      host.innerHTML='<span class="tile-chip" id="timer-plus" role="button" aria-label="Add timer">+</span><span class="tile-label">Timer</span><span class="win"><span class="tile-out timer-time dim">00:00</span></span>';
       return;
     }
     host.classList.remove('empty');
-    const slides=timers.map(t=>{
-      const rem=remOf(t), frac=Math.max(0,Math.min(1,rem/t.total));
-      return '<div class="timer-slide'+(t.running?'':' paused')+'" data-id="'+t.id+'">'
-        +'<button class="timer-x" data-id="'+t.id+'" aria-label="Cancel">'+ICON_X_SM+'</button>'
-        +'<div class="timer-face" data-id="'+t.id+'"><span class="tstate">'+(t.running?ICON_TP_PAUSE:ICON_TP_PLAY)+'</span><span class="timer-count">'+fmtTime(rem)+'</span></div>'
-        +'<div class="timer-prog"><div class="timer-prog-fill" style="width:'+(frac*100)+'%"></div></div>'
-        +'</div>';
-    }).join('');
-    host.innerHTML='<span class="tile-label">Timer</span>'
-      +'<button class="timer-plus" id="timer-plus" aria-label="Add timer">+</button>'
-      +'<div class="timer-track" id="timer-track">'+slides+'</div>'
+    if(!activeTid || !timers.some(t=>t.id===activeTid)) activeTid=timers[0].id;
+    const slides=timers.map(t=>'<div class="timer-slide" data-id="'+t.id+'"><span class="tile-out timer-time'+(t.running?'':' paused')+'">'+fmtTime(remOf(t))+'</span></div>').join('');
+    host.innerHTML='<span class="tile-chip" id="timer-plus" role="button" aria-label="Add timer">+</span>'
+      +'<span class="tile-chip right" id="timer-cancel" role="button" aria-label="Cancel timer">\u00D7</span>'
+      +'<span class="tile-label">Timer</span>'
+      +'<span class="win"><div class="timer-track" id="timer-track">'+slides+'</div></span>'
       +'<div class="timer-dots" id="timer-dots"></div>';
     const track=$("timer-track");
-    track.addEventListener('scroll', ()=>{ const w=track.clientWidth||1; renderDots(timers.length, Math.round(track.scrollLeft/w)); });
-    renderDots(timers.length, 0);
+    const startIdx=Math.max(0,timers.findIndex(t=>t.id===activeTid));
+    track.addEventListener('scroll', ()=>{ const w=track.clientWidth||1; const i=Math.round(track.scrollLeft/w); activeTid=(timers[i]||timers[0]).id; renderDots(timers.length,i); });
+    renderDots(timers.length, startIdx);
+    if(startIdx>0) setTimeout(()=>{ track.scrollLeft = startIdx*(track.clientWidth||1); },0);
   }
   function updateTimerCounts(){
-    timers.forEach(t=>{
-      const sl=document.querySelector('.timer-slide[data-id="'+t.id+'"]'); if(!sl) return;
-      const rem=remOf(t);
-      const c=sl.querySelector('.timer-count'); if(c) c.textContent=fmtTime(rem);
-      const f=sl.querySelector('.timer-prog-fill'); if(f) f.style.width=(Math.max(0,Math.min(1,rem/t.total))*100)+'%';
-    });
+    timers.forEach(t=>{ const sl=document.querySelector('.timer-slide[data-id="'+t.id+'"]'); if(!sl) return; const el=sl.querySelector('.timer-time'); if(el) el.textContent=fmtTime(remOf(t)); });
   }
   function tickTimers(){
     const now=Date.now(); let finished=false;
@@ -289,19 +287,17 @@
     if(timers.length===0){ clearInterval(timerTick); timerTick=null; renderTimerModule(); }
   }
   function ensureTimerTick(){ if(!timerTick) timerTick=setInterval(tickTimers,250); }
-  function addTimer(total){ if(total<=0) return; timers.push({id:'t'+Date.now()+Math.floor(Math.random()*999), total:total, remaining:total, endTime:Date.now()+total*1000, running:true}); renderTimerModule(); ensureTimerTick(); }
+  function addTimer(total){ if(total<=0) return; const id='t'+Date.now()+Math.floor(Math.random()*999); timers.push({id, total, remaining:total, endTime:Date.now()+total*1000, running:true}); activeTid=id; renderTimerModule(); ensureTimerTick(); }
   function removeTimer(id){ timers=timers.filter(x=>x.id!==id); if(timers.length===0 && timerTick){ clearInterval(timerTick); timerTick=null; } renderTimerModule(); }
   function togglePause(id){
     const t=timers.filter(x=>x.id===id)[0]; if(!t) return;
-    if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; }
-    else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); }
-    const sl=document.querySelector('.timer-slide[data-id="'+id+'"]');
-    if(sl){ sl.classList.toggle('paused',!t.running); const st=sl.querySelector('.tstate'); if(st) st.innerHTML=t.running?ICON_TP_PAUSE:ICON_TP_PLAY; }
+    if(t.running){ t.remaining=(t.endTime-Date.now())/1000; t.running=false; } else { t.endTime=Date.now()+Math.max(0,t.remaining)*1000; t.running=true; ensureTimerTick(); }
+    const sl=document.querySelector('.timer-slide[data-id="'+id+'"] .timer-time'); if(sl) sl.classList.toggle('paused',!t.running);
   }
   $("timer-tile").addEventListener('click', e=>{
-    const x=e.target.closest('.timer-x'); if(x){ removeTimer(x.dataset.id); return; }
     if(e.target.closest('#timer-plus')){ openTimer(); return; }
-    const face=e.target.closest('.timer-face'); if(face){ togglePause(face.dataset.id); return; }
+    if(e.target.closest('#timer-cancel')){ if(activeTid) removeTimer(activeTid); return; }
+    const slide=e.target.closest('.timer-slide'); if(slide){ togglePause(slide.dataset.id); return; }
     if(timers.length===0){ openTimer(); }
   });
   let alarmKind="chime";
@@ -316,7 +312,7 @@
     const mins=[]; for(let i=0;i<=99;i++) mins.push(i);
     const secs=[]; for(let i=0;i<=59;i++) secs.push(i);
     makeVWheel($("wMin"), mins, tMin, v=>{ tMin=v; }, {speed:1});
-    makeVWheel($("wSec"), secs, tSec, v=>{ tSec=v; }, {speed:1.45});
+    makeVWheel($("wSec"), secs, tSec, v=>{ tSec=v; }, {speed:1.5});
     $("almList").onclick=e=>{ const b=e.target.closest(".sound-opt"); if(!b)return; alarmKind=b.dataset.k; [].forEach.call(e.currentTarget.children,c=>c.classList.toggle("sel",c===b)); playAlarm(alarmKind); };
     $("tAdd").onclick=()=>{ if(tMin*60+tSec>0){ addTimer(tMin*60+tSec); closeSheet(); } };
   }
@@ -332,7 +328,7 @@
   function ensureCtx(){
     if(!ctx){
       ctx = new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = 1.0; master.connect(ctx.destination);
       ctx.onstatechange = ()=>{ if(!document.hidden && (ctx.state==="interrupted"||ctx.state==="suspended")){ ctx.resume(); } };
     }
     if(ctx.state!=="running") ctx.resume();
@@ -381,37 +377,37 @@
   }
   buildBeats();
 
-  /* Click voices */
+  /* Click voices — all a touch louder / brighter; "sharp" left as-is */
   function clickSound(time, kind){
     if(clickVoice==="classic"){
-      const cfg=kind==="accent"?{f:1600,v:0.9}:kind==="med"?{f:1300,v:0.7}:kind==="main"?{f:1050,v:0.6}:{f:900,v:0.28};
+      const cfg=kind==="accent"?{f:1750,v:1.0}:kind==="med"?{f:1400,v:0.82}:kind==="main"?{f:1150,v:0.72}:{f:980,v:0.34};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
       g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.05);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.06);
     } else if(clickVoice==="warm"){
-      const cfg=kind==="accent"?{f:1150,v:1.0}:kind==="med"?{f:980,v:0.78}:kind==="main"?{f:820,v:0.7}:{f:640,v:0.34};
+      const cfg=kind==="accent"?{f:1200,v:1.0}:kind==="med"?{f:1020,v:0.86}:kind==="main"?{f:860,v:0.78}:{f:660,v:0.4};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="triangle"; o.frequency.value=cfg.f;
       g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.07);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.08);
       const o2=ctx.createOscillator(),g2=ctx.createGain(); o2.type="sine"; o2.frequency.value=cfg.f*0.5;
-      g2.gain.setValueAtTime(0.0001,time); g2.gain.exponentialRampToValueAtTime(cfg.v*0.6,time+0.002); g2.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
+      g2.gain.setValueAtTime(0.0001,time); g2.gain.exponentialRampToValueAtTime(cfg.v*0.55,time+0.002); g2.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
       o2.connect(g2); g2.connect(master); o2.start(time); o2.stop(time+0.11);
     } else if(clickVoice==="wood"){
-      const cfg=kind==="accent"?{f:1000,v:1.0}:kind==="med"?{f:820,v:0.8}:kind==="main"?{f:720,v:0.72}:{f:560,v:0.36};
+      const cfg=kind==="accent"?{f:1050,v:1.0}:kind==="med"?{f:860,v:0.86}:kind==="main"?{f:760,v:0.78}:{f:580,v:0.4};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="triangle"; o.frequency.setValueAtTime(cfg.f*1.5,time); o.frequency.exponentialRampToValueAtTime(cfg.f,time+0.02);
       g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.001); g.gain.exponentialRampToValueAtTime(0.0001,time+0.028);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.04);
     } else if(clickVoice==="click"){
-      const cfg=kind==="accent"?{f:2700,v:0.95}:kind==="med"?{f:2300,v:0.8}:kind==="main"?{f:2100,v:0.72}:{f:1600,v:0.4};
+      const cfg=kind==="accent"?{f:2800,v:1.0}:kind==="med"?{f:2400,v:0.86}:kind==="main"?{f:2150,v:0.8}:{f:1650,v:0.46};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
       g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.0004); g.gain.exponentialRampToValueAtTime(0.0001,time+0.014);
       o.connect(g); g.connect(master); o.start(time); o.stop(time+0.02);
     } else if(clickVoice==="pulse"){
-      const cfg=kind==="accent"?{f:1200,v:0.85}:kind==="med"?{f:1000,v:0.68}:kind==="main"?{f:880,v:0.6}:{f:680,v:0.3};
+      const cfg=kind==="accent"?{f:1300,v:0.98}:kind==="med"?{f:1080,v:0.8}:kind==="main"?{f:940,v:0.72}:{f:720,v:0.38};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=cfg.f;
-      g.gain.setValueAtTime(0.0001,time); g.gain.linearRampToValueAtTime(cfg.v,time+0.007); g.gain.exponentialRampToValueAtTime(0.0001,time+0.1);
-      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.12);
-    } else { /* sharp */
+      g.gain.setValueAtTime(0.0001,time); g.gain.linearRampToValueAtTime(cfg.v,time+0.006); g.gain.exponentialRampToValueAtTime(0.0001,time+0.09);
+      o.connect(g); g.connect(master); o.start(time); o.stop(time+0.11);
+    } else { /* sharp — unchanged */
       const cfg=kind==="accent"?{f:2200,v:1.0}:kind==="med"?{f:1800,v:0.82}:kind==="main"?{f:1660,v:0.78}:{f:1245,v:0.42};
       const o=ctx.createOscillator(),g=ctx.createGain(); o.type="square"; o.frequency.value=cfg.f;
       g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(cfg.v,time+0.0006); g.gain.exponentialRampToValueAtTime(0.0001,time+0.032);
@@ -459,19 +455,12 @@
   const multBtn=$("mult");
   multBtn.addEventListener("click", () => { const on = multBtn.classList.toggle("active"); multBtn.setAttribute("aria-pressed", on); $("subind").classList.toggle("on", on); mult = on ? 2 : 1; });
 
-  /* ---------- Circular dial (spin) ---------- */
+  /* ---------- Circular knob (slower throw) ---------- */
   const dial=$("dial"), num=$("bpm-num");
-  (function(){
-    let s=''; const N=30;
-    for(let i=0;i<N;i++){ const ang=i*(360/N), rad=(ang-90)*Math.PI/180, r1=79, r2=85;
-      s+='<line class="dtick" x1="'+(100+r1*Math.cos(rad)).toFixed(1)+'" y1="'+(100+r1*Math.sin(rad)).toFixed(1)+'" x2="'+(100+r2*Math.cos(rad)).toFixed(1)+'" y2="'+(100+r2*Math.sin(rad)).toFixed(1)+'"/>'; }
-    s+='<line class="dnotch" x1="100" y1="68" x2="100" y2="85"/>';
-    $("dialTicks").innerHTML=s;
-  })();
   const clamp = v => Math.max(10,Math.min(500,v));
   function setBpm(v){ bpm=clamp(Math.round(v)); num.value=bpm; updateTempo(); }
   let wheelRot=0, dragging=false, lastAng=0;
-  const GAIN = 22;
+  const GAIN = 14; // slower throw
   function angOf(e){ const r=dial.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); }
   dial.addEventListener("pointerdown", e=>{ if(e.target.closest("#play-btn")) return; dragging=true; lastAng=angOf(e); try{dial.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
   dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); setBpm(bpm + d*GAIN); lastAng=a; });
@@ -490,24 +479,24 @@
 
   updateTempo();
 
-  /* ---------- 180° flip (iPhone won't do upside-down portrait natively) ---------- */
+  /* ---------- 180° flip (iPhones can't do upside-down portrait natively) ---------- */
   let flipReady=false, baseSign=null, pendSign=null, pendCount=0;
   function onMotion(e){
     const g=e.accelerationIncludingGravity; if(!g || g.y==null) return;
-    const mag=Math.hypot(g.x||0,g.y||0,g.z||0)||1;   // works whether iOS reports g-units or m/s^2
-    if(Math.abs(g.y)/mag < 0.6) return;               // only when phone is roughly upright
+    const mag=Math.hypot(g.x||0,g.y||0,g.z||0)||1;
+    if(Math.abs(g.y)/mag < 0.3) return;                 // works for held or propped phones
     const sign = g.y>0 ? 1 : -1;
-    if(baseSign===null){ baseSign=sign; return; } // first upright reading = "normal"
+    if(baseSign===null){ baseSign=sign; return; }        // orientation at first touch = "normal"
     const want = (sign!==baseSign);
     if(want !== document.body.classList.contains('flipped')){
       if(pendSign===want) pendCount++; else { pendSign=want; pendCount=1; }
-      if(pendCount>=4){ document.body.classList.toggle('flipped', want); pendCount=0; }
+      if(pendCount>=3){ document.body.classList.toggle('flipped', want); pendCount=0; }
     } else pendCount=0;
   }
   function enableFlip(){
     if(flipReady) return;
     const DM=window.DeviceMotionEvent;
-    if(!DM) return;
+    if(!DM){ return; }
     if(typeof DM.requestPermission==='function'){
       DM.requestPermission().then(s=>{ if(s==='granted'){ window.addEventListener('devicemotion', onMotion); flipReady=true; } }).catch(()=>{});
     } else { window.addEventListener('devicemotion', onMotion); flipReady=true; }
