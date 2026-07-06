@@ -50,13 +50,13 @@ body.flipped .phone{transform:rotate(180deg);}
 .win{overflow:hidden;min-height:48px;width:100%;display:flex;align-items:center;justify-content:center;}
 .tile-out{display:inline-block;font-size:34px;font-weight:500;line-height:1.1;color:var(--ink);}
 #dir-out{font-size:17px;display:inline-block;}
-.die-total{position:absolute;top:9px;right:12px;font-size:15px;font-weight:700;color:var(--ink);opacity:0;transition:opacity .2s;}
+.die-total{position:absolute;bottom:9px;right:12px;font-size:15px;font-weight:700;color:var(--ink);opacity:0;transition:opacity .2s;}
 .die-total.show{opacity:.85;}
 .drow{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;}
 .dcell{display:inline-flex;flex-direction:column;align-items:center;gap:2px;}
 /* dice affordance: a bare glyph (+ for one die, ± once you have more) */
-.die-cfg-glyph{position:absolute;top:7px;left:10px;z-index:2;font-size:21px;line-height:1;color:var(--ink);opacity:.5;cursor:pointer;padding:2px 5px;}
-.die-cfg-glyph:active{opacity:.9;}
+.die-cfg{position:absolute;top:9px;right:9px;z-index:2;display:flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 8px;font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--ink);opacity:.5;border-radius:8px;background:transparent;cursor:pointer;line-height:1;}
+.die-cfg:active{opacity:.95;}
 
 .t-amber{--fill:#FAEEDA;--ink:#854F0B;}.t-green{--fill:#EAF3DE;--ink:#3B6D11;}.t-blue{--fill:#E6F1FB;--ink:#185FA5;}
 .t-purple{--fill:#EEEDFE;--ink:#534AB7;}.t-teal{--fill:#E1F5EE;--ink:#0F6E56;}

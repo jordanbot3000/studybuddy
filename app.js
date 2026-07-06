@@ -44,7 +44,7 @@
     const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
-  function updateDiceChip(){ const c=$("die-cfg"); if(c) c.textContent = dice.length>1 ? "\u00B1" : "+"; }
+  function updateDiceChip(){ const c=$("die-cfg"); if(c) c.textContent = dice.length>1 ? "+/\u2212" : "+"; }
   function showTotal(sum){ const t=$("die-total"); t.textContent=sum; t.classList.add("show"); }
   function diceDefault(){ $("die-out").innerHTML = renderDiceRow(dice.map(s=>({v:1,s}))); showTotal(dice.length); }
   diceDefault();
