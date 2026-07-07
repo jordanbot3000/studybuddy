@@ -24,6 +24,10 @@
   function hop(){ mascot.classList.remove("hop"); void mascot.offsetWidth; mascot.classList.add("hop"); }
 
   document.addEventListener('contextmenu', e=>e.preventDefault());
+  /* haptics: iOS <input switch> trick (17.4-26.4) + Android vibrate; harmless elsewhere */
+  let hapLabel=null;
+  (function(){ try{ hapLabel=document.createElement('label'); hapLabel.setAttribute('aria-hidden','true'); hapLabel.style.cssText='position:fixed;top:-60px;left:-60px;width:1px;height:1px;opacity:0;pointer-events:none;'; const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); i.tabIndex=-1; hapLabel.appendChild(i); (document.body||document.documentElement).appendChild(hapLabel); }catch(_){} })();
+  function haptic(){ try{ if(hapLabel) hapLabel.click(); }catch(_){} if(navigator.vibrate){ try{ navigator.vibrate(6); }catch(_){} } }
 
   /* ---------- Dice ---------- */
   const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
@@ -44,7 +48,7 @@
     const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
-  function updateDiceChip(){ const c=$("die-cfg"); if(c) c.textContent = dice.length>1 ? "+/\u2212" : "+"; }
+  function updateDiceChip(){ const x=$("die-cfg-x"); if(x) x.hidden = dice.length<=1; }
   function showTotal(sum){ const t=$("die-total"); t.textContent=sum; t.classList.add("show"); }
   function diceDefault(){ $("die-out").innerHTML = renderDiceRow(dice.map(s=>({v:1,s}))); showTotal(dice.length); }
   diceDefault();
@@ -121,7 +125,8 @@
     const CELL=52;
     el.innerHTML = values.map(v=>'<div class="wcell">'+v+'</div>').join('');
     const idx = Math.max(0, values.indexOf(current));
-    function mark(){ const i=Math.round(el.scrollLeft/CELL); for(let j=0;j<el.children.length;j++) el.children[j].classList.toggle('mid', j===i); }
+    let lastI=-1;
+    function mark(){ const i=Math.round(el.scrollLeft/CELL); if(i!==lastI){ if(lastI!==-1) haptic(); lastI=i; } for(let j=0;j<el.children.length;j++) el.children[j].classList.toggle('mid', j===i); }
     let t;
     el.addEventListener('scroll', ()=>{ mark(); clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(values.length-1,Math.round(el.scrollLeft/CELL))); onChange(values[i]); }, 110); });
     setTimeout(()=>{ el.scrollLeft = idx*CELL; mark(); }, 60);
@@ -140,10 +145,12 @@
     let pos=Math.max(0,values.indexOf(current))*CELL, raf=0;
     const clampPos=p=>Math.max(0,Math.min(maxPos,p));
     const curIdx=()=>Math.max(0,Math.min(n-1,Math.round(pos/CELL)));
+    let lastCi=-1;
     function paint(anim){
       list.style.transition=anim?'transform .22s cubic-bezier(.2,.8,.3,1)':'none';
       list.style.transform='translateY('+(baseline-pos)+'px)';
       const ci=curIdx();
+      if(ci!==lastCi){ if(lastCi!==-1) haptic(); lastCi=ci; }
       for(let j=0;j<n;j++) list.children[j].classList.toggle('mid', j===ci);
     }
     function commit(){ onChange(values[curIdx()]); }
@@ -153,14 +160,15 @@
     let dragging=false, moved=false, startY=0, startPos=0, lastY=0, lastT=0, pv=0;
     el.addEventListener('pointerdown', e=>{
       if(e.target===input) return;
+      if(input.style.display==='block') input.blur();
       stopAnim(); dragging=true; moved=false; startY=e.clientY; startPos=pos; lastY=e.clientY; lastT=e.timeStamp; pv=0;
       try{el.setPointerCapture(e.pointerId);}catch(_){}
       e.preventDefault();
     });
     el.addEventListener('pointermove', e=>{
       if(!dragging) return;
-      const dy=e.clientY-startY; if(Math.abs(dy)>6) moved=true;
-      pos=clampPos(startPos - dy*speed);
+      if(!moved){ if(Math.abs(e.clientY-startY)>6){ moved=true; startY=e.clientY; startPos=pos; lastY=e.clientY; lastT=e.timeStamp; } return; }
+      pos=clampPos(startPos - (e.clientY-startY)*speed);
       const dt=e.timeStamp-lastT; if(dt>0){ pv=Math.max(-2.4,Math.min(2.4,-((e.clientY-lastY)/dt)*speed)); }
       lastY=e.clientY; lastT=e.timeStamp;
       paint(false);
@@ -208,7 +216,8 @@
     refresh();
     $("setDone").onclick=()=>{ diceDefault(); updateDiceChip(); closeSheet(); };
   }
-  $("die-cfg").onclick = e => { e.stopPropagation(); openDiceCfg(); };
+  $("die-cfg-plus").onclick = e => { e.stopPropagation(); openDiceCfg(); };
+  $("die-cfg-x").onclick = e => { e.stopPropagation(); openDiceCfg(); };
   updateDiceChip();
 
   /* ---------- Fret: tap = roll, hold = options ---------- */
@@ -290,12 +299,24 @@
   }
   function tickTimers(){
     const now=Date.now(); let finished=false;
-    timers.forEach(t=>{ if(t.running){ t.remaining=(t.endTime-now)/1000; if(t.remaining<=0 && !t.done){ t.done=true; finished=true; playAlarm(alarmKind); if(navigator.vibrate) try{navigator.vibrate([200,120,200]);}catch(e){} } } });
+    timers.forEach(t=>{ if(t.running){ t.remaining=(t.endTime-now)/1000; if(t.remaining<=0 && !t.done){ t.done=true; finished=true; fireAlarm(t); } } });
     if(finished){ timers=timers.filter(t=>!t.done); renderTimerModule(); }
     else updateTimerCounts();
     if(timers.length===0){ clearInterval(timerTick); timerTick=null; renderTimerModule(); }
   }
   function ensureTimerTick(){ if(!timerTick) timerTick=setInterval(tickTimers,250); }
+  let alarmLoop=null, alarmTotal=0;
+  function fireAlarm(t){
+    alarmTotal=t.total;
+    if(playing) stopMet();
+    const mm=Math.floor(t.total/60), ss=t.total%60;
+    const at=$("alarm-time"); if(at) at.textContent=mm+':'+pad2(ss);
+    const ov=$("alarm-ov"); if(ov) ov.classList.add("show");
+    const ring=()=>{ ensureCtx(); if(ctx.state!=="running") ctx.resume(); playAlarm(alarmKind); if(navigator.vibrate) try{navigator.vibrate([300,150,300]);}catch(e){} haptic(); };
+    ring(); if(alarmLoop) clearInterval(alarmLoop); alarmLoop=setInterval(ring,1600);
+  }
+  function stopAlarm(){ if(alarmLoop){ clearInterval(alarmLoop); alarmLoop=null; } const ov=$("alarm-ov"); if(ov) ov.classList.remove("show"); }
+  (function(){ const d=$("alarm-dismiss"), r=$("alarm-repeat"); if(d) d.onclick=()=>stopAlarm(); if(r) r.onclick=()=>{ stopAlarm(); addTimer(alarmTotal); }; })();
   function addTimer(total){ if(total<=0) return; const id='t'+Date.now()+Math.floor(Math.random()*999); timers.push({id, total, remaining:total, endTime:Date.now()+total*1000, running:true}); activeTid=id; renderTimerModule(); ensureTimerTick(); }
   function removeTimer(id){ timers=timers.filter(x=>x.id!==id); if(timers.length===0 && timerTick){ clearInterval(timerTick); timerTick=null; } renderTimerModule(); }
   function togglePause(id){
@@ -337,15 +358,19 @@
   function ensureCtx(){
     if(!ctx){
       ctx = new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 1.0; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = 1.0;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value=-20; comp.knee.value=24; comp.ratio.value=10; comp.attack.value=0.002; comp.release.value=0.18;
+      const outGain = ctx.createGain(); outGain.gain.value=1.8;
+      master.connect(comp); comp.connect(outGain); outGain.connect(ctx.destination);
       ctx.onstatechange = ()=>{ if(!document.hidden && (ctx.state==="interrupted"||ctx.state==="suspended")){ ctx.resume(); } };
     }
     if(ctx.state!=="running") ctx.resume();
     return ctx;
   }
   function unlockAudio(){ try{ ensureCtx(); const b=ctx.createBuffer(1,1,22050); const s=ctx.createBufferSource(); s.buffer=b; s.connect(master); s.start(0); }catch(e){} }
-  function recover(){ if(ctx){ if(ctx.state!=="running") ctx.resume(); if(playing){ nextTime = ctx.currentTime + 0.06; queue.length=0; } } }
-  document.addEventListener("visibilitychange", ()=>{ if(document.hidden){ if(ctx && ctx.state==="running"){ try{ctx.suspend();}catch(e){} } } else recover(); });
+  function recover(){ if(!ctx) return; if(ctx.state!=="running") ctx.resume(); if(playing){ nextTime=ctx.currentTime+0.08; queue.length=0; clearInterval(timer); timer=setInterval(schedule,25); } }
+  document.addEventListener("visibilitychange", ()=>{ if(document.hidden){ if(playing){ clearInterval(timer); queue.length=0; } } else recover(); });
   window.addEventListener("focus", recover);
   window.addEventListener("pageshow", recover);
 
@@ -464,16 +489,18 @@
   /* ---------- Circular knob ---------- */
   const dial=$("dial"), num=$("bpm-num");
   const clamp = v => Math.max(10,Math.min(500,v));
-  function setBpm(v){ bpm=clamp(Math.round(v)); num.value=bpm; updateTempo(); }
+  let bpmExact=100;
+  function applyBpm(){ const nb=Math.round(bpmExact); if(nb!==bpm){ bpm=nb; num.value=bpm; updateTempo(); if(document.activeElement!==num) haptic(); } }
+  function setBpm(v){ bpmExact=clamp(v); applyBpm(); }
   let wheelRot=0, dragging=false, lastAng=0;
   const GAIN = 14;
   function angOf(e){ const r=dial.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); }
   dial.addEventListener("pointerdown", e=>{ if(e.target.closest("#play-btn")) return; dragging=true; lastAng=angOf(e); try{dial.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
-  dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); setBpm(bpm + d*GAIN); lastAng=a; });
+  dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); bpmExact=clamp(bpmExact + d*GAIN); applyBpm(); lastAng=a; });
   ["pointerup","pointercancel","pointerleave"].forEach(ev=>dial.addEventListener(ev, ()=>{ dragging=false; }));
 
   num.addEventListener("focus", ()=>{ metEl.classList.add("editing"); });
-  num.addEventListener("input", () => { const v=parseInt(num.value,10); if(!isNaN(v)){ bpm=clamp(v); updateTempo(); } });
+  num.addEventListener("input", () => { const v=parseInt(num.value,10); if(!isNaN(v)){ bpmExact=clamp(v); bpm=Math.round(bpmExact); updateTempo(); } });
   num.addEventListener("change", () => { let v=parseInt(num.value,10); if(isNaN(v)) v=100; setBpm(v); });
   num.addEventListener("blur", ()=>{ metEl.classList.remove("editing"); });
   num.addEventListener("keydown", e => { if(e.key==="Enter") num.blur(); });
