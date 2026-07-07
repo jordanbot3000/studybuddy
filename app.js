@@ -48,7 +48,7 @@
     const n=pairs.length, sz = n===1?42:n<=2?34:n<=4?28:22;
     return '<span class="drow">'+pairs.map(p=>'<span class="dcell">'+renderDie(p.v,p.s,sz)+'</span>').join('')+'</span>';
   }
-  function updateDiceChip(){ const x=$("die-cfg-x"); if(x) x.hidden = dice.length<=1; }
+  function updateDiceChip(){}
   function showTotal(sum){ const t=$("die-total"); t.textContent=sum; t.classList.add("show"); }
   function diceDefault(){ $("die-out").innerHTML = renderDiceRow(dice.map(s=>({v:1,s}))); showTotal(dice.length); }
   diceDefault();
@@ -216,8 +216,7 @@
     refresh();
     $("setDone").onclick=()=>{ diceDefault(); updateDiceChip(); closeSheet(); };
   }
-  $("die-cfg-plus").onclick = e => { e.stopPropagation(); openDiceCfg(); };
-  $("die-cfg-x").onclick = e => { e.stopPropagation(); openDiceCfg(); };
+  $("die-cfg").onclick = e => { e.stopPropagation(); openDiceCfg(); };
   updateDiceChip();
 
   /* ---------- Fret: tap = roll, hold = options ---------- */
