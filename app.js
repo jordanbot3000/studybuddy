@@ -7,7 +7,7 @@
   const CHECK  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-  const notes  = ["C","C\u266F","D\u266D","D","D\u266F","E\u266D","E","F","F\u266F","G\u266D","G","G\u266F","A\u266D","A","A\u266F","B\u266D","B"];
+  const notes  = ["C","C\u266F","D\u266D","D","D\u266F","E\u266D","E","E\u266F","F\u266D","F","F\u266F","G\u266D","G","G\u266F","A\u266D","A","A\u266F","B\u266D","B","B\u266F","C\u266D"];
   const dirs   = [{t:"Ascending",a:"\u2191"},{t:"Descending",a:"\u2193"}];
   const perms  = ["1-2-3","1-3-2","2-1-3","2-3-1","3-1-2","3-2-1"];
   const minors = ["PD 2m","PD 3m","PD 6m","Open 2m","Open 3m","Open 6m","B+C 2m","B+C 3m","B+C 6m"];
@@ -57,24 +57,28 @@
     if(el._spin) return;
     el._spin=true; hop();
     const pairs = dice.map(s=>({v:rand(1,s), s}));
-    let i=0; const n=6;
-    const step=()=>{
-      if(i<n){ el.innerHTML = renderDiceRow(dice.map(s=>({v:rand(1,s),s}))); i++; setTimeout(step,40); }
-      else{ el.innerHTML = renderDiceRow(pairs); showTotal(pairs.reduce((a,p)=>a+p.v,0)); el._spin=false; }
-    };
-    step();
+    animSteps(6, 42, ()=>{ el.innerHTML = renderDiceRow(dice.map(s=>({v:rand(1,s),s}))); },
+      ()=>{ el.innerHTML = renderDiceRow(pairs); showTotal(pairs.reduce((a,p)=>a+p.v,0)); el._spin=false; });
   }
 
   /* ---------- Reel ---------- */
+  /* frame-aligned stepper: smoother than setTimeout, which iOS throttles/de-syncs */
+  function animSteps(n, dur, onStep, onDone){
+    const start=performance.now(); let shown=-1;
+    (function frame(now){
+      const k=Math.floor((now-start)/dur);
+      if(k>=n){ onDone(); return; }
+      if(k!==shown){ onStep(k); shown=k; }
+      requestAnimationFrame(frame);
+    })(performance.now());
+  }
   function reel(id, sampleHTML, finalVal){
     const el = $(id);
     if(el._spin) return;
     el._spin = true;
     const final = (finalVal!==undefined && finalVal!==null) ? finalVal : sampleHTML();
-    let i=0; const n=6;
     hop();
-    const step=()=>{ if(i<n){ el.innerHTML = sampleHTML(); i++; setTimeout(step, 40); } else { el.innerHTML = final; el._spin=false; } };
-    step();
+    animSteps(6, 42, ()=>{ el.innerHTML = sampleHTML(); }, ()=>{ el.innerHTML = final; el._spin=false; });
   }
   /* Key: draw from a shuffled bag so a key never repeats until all have shown (silent) */
   let keyBag=[], lastKey=null;
