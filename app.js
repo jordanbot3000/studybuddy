@@ -66,20 +66,25 @@
   }
 
   /* ---------- Reel ---------- */
-  function reel(id, sampleHTML){
+  function reel(id, sampleHTML, finalVal){
     const el = $(id);
     if(el._spin) return;
     el._spin = true;
-    const final = sampleHTML();
+    const final = (finalVal!==undefined && finalVal!==null) ? finalVal : sampleHTML();
     let i=0; const n=6;
     hop();
     const step=()=>{ if(i<n){ el.innerHTML = sampleHTML(); i++; setTimeout(step, 40); } else { el.innerHTML = final; el._spin=false; } };
     step();
   }
-  $("key-tile").onclick  = () => reel("key-out", ()=>pick(notes));
+  /* Key: draw from a shuffled bag so a key never repeats until all have shown (silent) */
+  let keyBag=[], lastKey=null;
+  function nextKey(){ if(!keyBag.length){ keyBag=shuffle(notes.slice()); if(keyBag.length>1 && keyBag[keyBag.length-1]===lastKey) keyBag.unshift(keyBag.pop()); } lastKey=keyBag.pop(); return lastKey; }
+  /* Minors weighting: PD 50% / Open 30% / B+C 20% */
+  function pickMinor(){ const r=Math.random(); const g = r<0.5?"PD":(r<0.8?"Open":"B+C"); return pick(minors.filter(m=>m.indexOf(g)===0)); }
+  $("key-tile").onclick  = () => reel("key-out", ()=>pick(notes), nextKey());
   $("die-tile").onclick  = () => rollDice();
   $("perm-tile").onclick = () => reel("perm-out", ()=>pick(perms));
-  $("min-tile").onclick  = () => reel("min-out", ()=>pick(minors));
+  $("min-tile").onclick  = () => reel("min-out", ()=>pickMinor());
   /* Direction: directional sweep — ascending rises from below, descending drops from above */
   $("dir-tile").onclick  = () => { const d=pick(dirs); const el=$("dir-out"); el.textContent=d.a+" "+d.t; el.style.animation='none'; void el.offsetWidth; el.style.animation=(d.t==="Ascending"?'dirUp':'dirDown')+' .48s ease'; hop(); };
 
@@ -312,7 +317,7 @@
     const at=$("alarm-time"); if(at) at.textContent=mm+':'+pad2(ss);
     const ov=$("alarm-ov"); if(ov) ov.classList.add("show");
     const ring=()=>{ ensureCtx(); if(ctx.state!=="running") ctx.resume(); playAlarm(alarmKind); if(navigator.vibrate) try{navigator.vibrate([300,150,300]);}catch(e){} haptic(); };
-    ring(); if(alarmLoop) clearInterval(alarmLoop); alarmLoop=setInterval(ring,1600);
+    ring(); if(alarmLoop) clearInterval(alarmLoop); alarmLoop=setInterval(ring,1400);
   }
   function stopAlarm(){ if(alarmLoop){ clearInterval(alarmLoop); alarmLoop=null; } const ov=$("alarm-ov"); if(ov) ov.classList.remove("show"); }
   (function(){ const d=$("alarm-dismiss"), r=$("alarm-repeat"); if(d) d.onclick=()=>stopAlarm(); if(r) r.onclick=()=>{ stopAlarm(); addTimer(alarmTotal); }; })();
@@ -383,12 +388,12 @@
   }
   function playAlarm(kind){
     ensureCtx(); const t=ctx.currentTime+0.03;
-    if(kind==="beeps"){ [0,0.18,0.36].forEach(dt=>tone(880,t+dt,0.12,"square",0.5)); }
-    else if(kind==="bell"){ tone(660,t,1.3,"sine",0.55); tone(990,t,1.3,"sine",0.22); tone(1320,t,0.9,"sine",0.1); }
-    else if(kind==="ping"){ tone(1245,t,0.35,"sine",0.55); tone(1245,t+0.42,0.5,"sine",0.4); }
-    else if(kind==="marimba"){ [523.25,783.99,1046.5].forEach((f,i)=>tone(f,t+i*0.13,0.35,"triangle",0.5)); }
-    else if(kind==="arcade"){ [440,587,740,988].forEach((f,i)=>tone(f,t+i*0.08,0.1,"square",0.4)); }
-    else { [523.25,659.25,783.99].forEach((f,i)=>tone(f,t+i*0.16,0.5,"sine",0.5)); }
+    if(kind==="beeps"){ [0,0.18,0.36].forEach(dt=>tone(880,t+dt,0.13,"square",0.95)); }
+    else if(kind==="bell"){ tone(660,t,1.4,"sine",0.95); tone(990,t,1.4,"sine",0.4); tone(1320,t,1.0,"sine",0.2); }
+    else if(kind==="ping"){ tone(1245,t,0.4,"sine",0.95); tone(1245,t+0.45,0.55,"sine",0.7); }
+    else if(kind==="marimba"){ [523.25,783.99,1046.5].forEach((f,i)=>tone(f,t+i*0.13,0.4,"triangle",0.95)); }
+    else if(kind==="arcade"){ [440,587,740,988].forEach((f,i)=>tone(f,t+i*0.09,0.12,"square",0.85)); }
+    else { [523.25,659.25,783.99].forEach((f,i)=>{ tone(f,t+i*0.16,0.5,"sine",0.95); tone(f*2,t+i*0.16,0.42,"sine",0.28); }); }
   }
 
   function tempoRGB(v){
@@ -492,7 +497,7 @@
   function applyBpm(){ const nb=Math.round(bpmExact); if(nb!==bpm){ bpm=nb; num.value=bpm; updateTempo(); if(document.activeElement!==num) haptic(); } }
   function setBpm(v){ bpmExact=clamp(v); applyBpm(); }
   let wheelRot=0, dragging=false, lastAng=0;
-  const GAIN = 14;
+  const GAIN = 11;
   function angOf(e){ const r=dial.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); }
   dial.addEventListener("pointerdown", e=>{ if(e.target.closest("#play-btn")) return; dragging=true; lastAng=angOf(e); try{dial.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
   dial.addEventListener("pointermove", e=>{ if(!dragging)return; const a=angOf(e); let d=a-lastAng; if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI; wheelRot+=d*180/Math.PI; $("dialTicks").setAttribute("transform","rotate("+wheelRot.toFixed(1)+" 100 100)"); bpmExact=clamp(bpmExact + d*GAIN); applyBpm(); lastAng=a; });
